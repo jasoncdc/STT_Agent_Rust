@@ -1,0 +1,38 @@
+[package]
+name = "stt_agent_rust"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+default-run = "stt_agent_rust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "stt_agent_rust_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# --- 請新增以下這幾行 ---
+# 1. 用來發送網路請求給 Gemini API
+# 1. 官方等級的 Gemini Rust Client
+gemini-rust = "1.7.1"
+
+# 2. 用來讓 Rust 可以非同步處理 (不會卡住視窗)
+tokio = { version = "1", features = ["full"] }
+
+# --- Standalone Binary Targets ---
+# Auto-discovered from src/bin/
+
