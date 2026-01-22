@@ -2,11 +2,23 @@
 use crate::services::{Converter, Silence, Splitter};
 use tauri::command;
 
-const OUTPUT_DIR: &str = "/home/jason/Downloads";
+/// 取得系統下載資料夾路徑 (跨平台)
+/// Windows: C:\Users\使用者\Downloads
+/// Linux: /home/使用者/Downloads
+/// macOS: /Users/使用者/Downloads
+fn get_download_dir() -> String {
+    dirs::download_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| {
+            dirs::home_dir()
+                .map(|p| p.join("Downloads").to_string_lossy().to_string())
+                .unwrap_or_else(|| ".".to_string())
+        })
+}
 
 #[command]
 pub fn run_convert_cmd() -> String {
-    format!("Converter 已就緒，輸出目錄: {}", OUTPUT_DIR)
+    format!("Converter 已就緒，輸出目錄: {}", get_download_dir())
 }
 
 /// 轉換多個檔案為 MP3
@@ -16,10 +28,12 @@ pub async fn convert_files_to_mp3(file_paths: Vec<String>) -> Result<String, Str
         return Err("未選擇任何檔案".to_string());
     }
 
+    let output_dir = get_download_dir();
+
     // 在背景執行緒執行，避免阻塞 UI
     let result = tokio::task::spawn_blocking(move || {
         let converter = Converter::new();
-        let results = converter.convert_files(file_paths.clone(), OUTPUT_DIR);
+        let results = converter.convert_files(file_paths.clone(), &output_dir);
 
         let mut success_count = 0;
         let mut fail_count = 0;
@@ -42,7 +56,7 @@ pub async fn convert_files_to_mp3(file_paths: Vec<String>) -> Result<String, Str
             "轉檔完成！成功: {} 個，失敗: {} 個\n輸出目錄: {}\n\n{}",
             success_count,
             fail_count,
-            OUTPUT_DIR,
+            output_dir,
             messages.join("\n")
         )
     })

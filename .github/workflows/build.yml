@@ -1,14 +1,9 @@
-name: Build Windows App
-
-permissions:
-  contents: write
+name: Build Windows App (Artifacts Only)
 
 on:
   push:
     branches: [main, master]
-    tags:
-      - 'v*'
-  workflow_dispatch:  # 允許手動觸發
+  workflow_dispatch: # 允許手動按按鈕觸發
 
 jobs:
   build-windows:
@@ -33,13 +28,16 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # 這裡改回使用 npm run tauri build，單純編譯，不發布
       - name: Build Tauri app
         run: npm run tauri build
 
-      - name: Upload Windows exe
+      # 手動上傳編譯結果到 Artifacts
+      - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: windows-installer
+          retention-days: 2   # 保留 3 天，幫你省空間
           path: |
-            src-tauri/target/release/*.exe
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
