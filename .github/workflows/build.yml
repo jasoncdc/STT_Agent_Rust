@@ -41,3 +41,4 @@ jobs:
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/stt_agent_rust.exe
