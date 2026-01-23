@@ -62,8 +62,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          retention-days: 2   # 保留 3 天，幫你省空間
+          retention-days: 2   # 保留 2 天，幫你省空間
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/msi/*.msi
+            # src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/stt_agent_rust.exe

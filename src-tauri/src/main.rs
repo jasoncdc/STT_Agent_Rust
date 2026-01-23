@@ -14,7 +14,8 @@ fn main() {
             commands::audio_cmd::convert_files_to_mp3,
             commands::audio_cmd::run_split_cmd,
             commands::audio_cmd::run_silence_cmd,
-            commands::report_cmd::run_report_cmd
+            commands::report_cmd::run_report_cmd,
+            commands::app_cmd::exit_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
