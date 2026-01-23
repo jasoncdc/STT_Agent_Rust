@@ -25,6 +25,19 @@ jobs:
       - name: Install FFmpeg
         run: choco install ffmpeg -y
 
+      - name: Bundle FFmpeg Sidecar
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries
+          $ffmpegPath = (Get-Command ffmpeg).Source
+          Copy-Item $ffmpegPath -Destination src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          Copy-Item $ffmpegPath -Destination src-tauri/ffmpeg-x86_64-pc-windows-msvc.exe
+          
+          echo "Listing src-tauri binaries:"
+          ls src-tauri/binaries
+          echo "Listing src-tauri root:"
+          ls src-tauri
+
+
       - name: Install npm dependencies
         run: npm ci
 

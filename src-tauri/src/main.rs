@@ -7,6 +7,7 @@ use stt_agent_rust_lib::commands;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::audio_cmd::run_convert_cmd,
