@@ -23,47 +23,48 @@ pub fn run_convert_cmd() -> String {
 
 /// 轉換多個檔案為 MP3
 #[command]
-pub async fn convert_files_to_mp3(file_paths: Vec<String>) -> Result<String, String> {
+pub async fn convert_files_to_mp3(
+    app: tauri::AppHandle,
+    file_paths: Vec<String>,
+) -> Result<String, String> {
     if file_paths.is_empty() {
         return Err("未選擇任何檔案".to_string());
     }
 
     let output_dir = get_download_dir();
 
-    // 在背景執行緒執行，避免阻塞 UI
-    let result = tokio::task::spawn_blocking(move || {
-        let converter = Converter::new();
-        let results = converter.convert_files(file_paths.clone(), &output_dir);
+    // No need for spawn_blocking as shell sidecar is async
+    let converter = Converter::new();
+    let results = converter
+        .convert_files(&app, file_paths.clone(), &output_dir)
+        .await;
 
-        let mut success_count = 0;
-        let mut fail_count = 0;
-        let mut messages = Vec::new();
+    let mut success_count = 0;
+    let mut fail_count = 0;
+    let mut messages = Vec::new();
 
-        for (i, result) in results.iter().enumerate() {
-            match result {
-                Ok(output_path) => {
-                    success_count += 1;
-                    messages.push(format!("✓ {}", output_path));
-                }
-                Err(e) => {
-                    fail_count += 1;
-                    messages.push(format!("✗ {} - {}", file_paths[i], e));
-                }
+    for (i, result) in results.iter().enumerate() {
+        match result {
+            Ok(output_path) => {
+                success_count += 1;
+                messages.push(format!("✓ {}", output_path));
+            }
+            Err(e) => {
+                fail_count += 1;
+                messages.push(format!("✗ {} - {}", file_paths[i], e));
             }
         }
+    }
 
-        format!(
-            "轉檔完成！成功: {} 個，失敗: {} 個\n輸出目錄: {}\n\n{}",
-            success_count,
-            fail_count,
-            output_dir,
-            messages.join("\n")
-        )
-    })
-    .await
-    .map_err(|e| format!("執行錯誤: {}", e))?;
+    let result_msg = format!(
+        "轉檔完成！成功: {} 個，失敗: {} 個\n輸出目錄: {}\n\n{}",
+        success_count,
+        fail_count,
+        output_dir,
+        messages.join("\n")
+    );
 
-    Ok(result)
+    Ok(result_msg)
 }
 
 #[command]

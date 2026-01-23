@@ -1,6 +1,6 @@
 [package]
 name = "stt_agent_rust"
-version = "0.1.0"
+version = "1.0.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -33,9 +33,11 @@ gemini-rust = "1.7.1"
 # 2. 用來讓 Rust 可以非同步處理 (不會卡住視窗)
 tokio = { version = "1", features = ["full"] }
 
+
 # 3. 取得系統目錄 (下載、文件等)
 dirs = "5"
+tauri-plugin-shell = "2"
+
 
 # --- Standalone Binary Targets ---
 # Auto-discovered from src/bin/
-
