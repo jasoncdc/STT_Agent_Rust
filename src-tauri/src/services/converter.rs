@@ -62,7 +62,13 @@ impl Converter {
             Ok(output_path)
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(format!("FFmpeg 轉檔失敗: {}", stderr))
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let exit_code = output.status.code().unwrap_or(-1);
+
+            Err(format!(
+                "FFmpeg 轉檔失敗 (Exit Code: {})。\nStderr: {}\nStdout: {}",
+                exit_code, stderr, stdout
+            ))
         }
     }
 
