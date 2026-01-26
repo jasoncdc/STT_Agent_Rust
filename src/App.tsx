@@ -86,6 +86,15 @@ function App() {
     await invoke("exit_app");
   };
 
+  const handleUninstall = async () => {
+    try {
+      await invoke("uninstall_app");
+    } catch (error) {
+      console.error("Uninstall failed:", error);
+      alert("無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)");
+    }
+  };
+
   const handleZoomIn = () => {
     setFontSize((prev) => Math.min(prev + 2, 24));
   };
@@ -121,6 +130,9 @@ function App() {
           </button>
           {openMenu === "file" && (
             <div className="dropdown-menu">
+              <button className="dropdown-item" onClick={handleUninstall}>
+                解除安裝
+              </button>
               <button className="dropdown-item" onClick={handleExit}>
                 結束
               </button>
