@@ -25,25 +25,30 @@ export function ReportPage() {
 
     return (
         <div>
-            <h2>報告生成 (Report)</h2>
-            <p>使用 AI 分析內容並產出報告。</p>
+            <h2 className="page-title">報告生成</h2>
+            <p className="page-description">使用 AI 分析內容並產出報告。</p>
 
-            <div style={{ marginBottom: "15px" }}>
+            <div className="input-group">
+                <label className="input-label">Google Gemini API Key</label>
                 <input
                     type="password"
+                    className="input"
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Google Gemini API Key"
+                    placeholder="輸入您的 API Key"
                     value={apiKey}
-                    style={{ width: "100%", maxWidth: "400px", padding: "10px 14px", borderRadius: "8px", border: "1px solid #333" }}
+                    style={{ maxWidth: "400px" }}
                 />
             </div>
 
-            <button onClick={runReport} disabled={loading}>
-                {loading ? "生成中..." : "生成報告"}
-            </button>
+            <div className="btn-group">
+                <button className="btn btn-primary" onClick={runReport} disabled={loading}>
+                    {loading && <span className="loading-spinner"></span>}
+                    {loading ? "生成中..." : "生成報告"}
+                </button>
+            </div>
 
             {output && (
-                <div style={{ marginTop: "10px", padding: "10px", background: "#222", borderRadius: "5px", whiteSpace: "pre-wrap", textAlign: "left" }}>
+                <div className={`output-box ${output.includes("錯誤") ? "error" : ""}`}>
                     {output}
                 </div>
             )}

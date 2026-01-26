@@ -59,30 +59,36 @@ export function ConvertPage() {
         setOutput("");
     }
 
+    // Extract filename from path
+    const getFileName = (path: string) => {
+        return path.split(/[/\\]/).pop() || path;
+    };
+
     return (
         <div>
-            <h2>轉檔模組 (Convert)</h2>
-            <p>將影音檔案轉換為 MP3 格式，儲存至 ~/Downloads</p>
+            <h2 className="page-title">轉檔模組</h2>
+            <p className="page-description">將影音檔案轉換為 MP3 格式，儲存至 ~/Downloads</p>
 
-            <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-                <button onClick={selectFiles} disabled={loading}>
+            <div className="btn-group">
+                <button className="btn btn-secondary" onClick={selectFiles} disabled={loading}>
                     選擇檔案
                 </button>
-                <button onClick={runConvert} disabled={loading || selectedFiles.length === 0}>
+                <button className="btn btn-primary" onClick={runConvert} disabled={loading || selectedFiles.length === 0}>
+                    {loading && <span className="loading-spinner"></span>}
                     {loading ? "轉檔中..." : "開始轉檔"}
                 </button>
-                <button onClick={clearFiles} disabled={loading}>
+                <button className="btn btn-secondary" onClick={clearFiles} disabled={loading}>
                     清除
                 </button>
             </div>
 
             {selectedFiles.length > 0 && (
-                <div style={{ marginBottom: "15px", padding: "10px", background: "#333", borderRadius: "5px", maxHeight: "150px", overflow: "auto" }}>
-                    <strong>已選擇的檔案 ({selectedFiles.length})：</strong>
-                    <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
+                <div className="file-list-card">
+                    <div className="file-list-header">已選擇的檔案 ({selectedFiles.length})</div>
+                    <ul className="file-list">
                         {selectedFiles.map((file, index) => (
-                            <li key={index} style={{ fontSize: "12px", wordBreak: "break-all" }}>
-                                {file}
+                            <li key={index} className="file-list-item">
+                                {getFileName(file)}
                             </li>
                         ))}
                     </ul>
@@ -90,7 +96,7 @@ export function ConvertPage() {
             )}
 
             {output && (
-                <div style={{ marginTop: "10px", padding: "10px", background: "#222", borderRadius: "5px", whiteSpace: "pre-wrap" }}>
+                <div className={`output-box ${output.includes("錯誤") ? "error" : ""}`}>
                     {output}
                 </div>
             )}

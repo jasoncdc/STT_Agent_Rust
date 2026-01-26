@@ -88,17 +88,14 @@ function App() {
 
   const handleZoomIn = () => {
     setFontSize((prev) => Math.min(prev + 2, 24));
-    setOpenMenu(null);
   };
 
   const handleZoomOut = () => {
     setFontSize((prev) => Math.max(prev - 2, 12));
-    setOpenMenu(null);
   };
 
   const handleResetZoom = () => {
     setFontSize(16);
-    setOpenMenu(null);
   };
 
   const handleSetThemeDark = () => {
