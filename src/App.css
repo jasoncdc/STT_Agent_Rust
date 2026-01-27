@@ -89,6 +89,7 @@ html, body {
   flex-shrink: 0;
   position: relative;
   z-index: 1000;
+  font-size: 14px; /* Fixed size, not affected by zoom */
 }
 
 .menu-item-wrapper {
@@ -319,6 +320,30 @@ html, body {
   box-shadow: 0 4px 24px var(--shadow);
   position: relative;
   z-index: 1;
+}
+
+/* Audio Player Section */
+.audio-player-section {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #333;
+}
+
+.audio-player-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  color: #aaa;
+}
+
+[data-theme="light"] .audio-player-section {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+}
+
+[data-theme="light"] .audio-player-section h3 {
+  color: var(--text-secondary);
 }
 
 /* ==================== Page Styles ==================== */

@@ -41,3 +41,9 @@ tauri-plugin-shell = "2"
 
 # --- Standalone Binary Targets ---
 # Auto-discovered from src/bin/
+
+# --- Audio Player Dependencies ---
+# Low-latency audio decoding and playback
+symphonia = { version = "0.5", features = ["mp3", "isomp4", "aac", "flac", "wav", "pcm"] }
+ringbuf = "0.4"
+cpal = "0.15"

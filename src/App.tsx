@@ -234,12 +234,20 @@ function App() {
 
         {/* Main Content */}
         <main className="main-content">
-          {/* Content Area - Render Active Component */}
+          {/* Content Area - All components stay mounted, hidden with CSS for state persistence */}
           <div className="content-area">
-            {activeTab === "convert" && <ConvertPage />}
-            {activeTab === "split" && <SplitPage />}
-            {activeTab === "silence" && <SilencePage />}
-            {activeTab === "report" && <ReportPage />}
+            <div style={{ display: activeTab === "convert" ? "block" : "none" }}>
+              <ConvertPage />
+            </div>
+            <div style={{ display: activeTab === "split" ? "block" : "none" }}>
+              <SplitPage />
+            </div>
+            <div style={{ display: activeTab === "silence" ? "block" : "none" }}>
+              <SilencePage />
+            </div>
+            <div style={{ display: activeTab === "report" ? "block" : "none" }}>
+              <ReportPage />
+            </div>
           </div>
         </main>
       </div>
