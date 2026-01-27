@@ -1,9 +1,11 @@
 pub mod converter;
-pub mod splitter;
-pub mod silence;
 pub mod report;
+pub mod silence;
+pub mod splitter;
 
 // Re-export for convenience
 pub use converter::Converter;
-pub use splitter::Splitter;
 pub use silence::Silence;
+pub use splitter::Splitter;
+pub mod file_manager;
+pub use file_manager::ProjectPaths;

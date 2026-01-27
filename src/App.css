@@ -196,6 +196,16 @@ html, body {
   z-index: 10000;
 }
 
+.dropdown-submenu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+}
+
 [data-theme="light"] .dropdown-submenu {
   background: #ffffff;
 }

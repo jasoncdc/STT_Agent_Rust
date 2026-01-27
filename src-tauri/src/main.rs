@@ -12,6 +12,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::audio_cmd::run_convert_cmd,
             commands::audio_cmd::convert_files_to_mp3,
+            commands::audio_cmd::set_project_root_dir,
             commands::audio_cmd::run_split_cmd,
             commands::audio_cmd::run_silence_cmd,
             commands::report_cmd::run_report_cmd,

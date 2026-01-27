@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import "./App.css";
 
 // Import modular pages
@@ -117,6 +118,25 @@ function App() {
     setOpenMenu(null);
   };
 
+  const handleSetProjectPath = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "選擇新的專案預設路徑",
+      });
+
+      if (selected && typeof selected === "string") {
+        await invoke("set_project_root_dir", { path: selected });
+        alert(`已設定新的專案路徑: ${selected}`);
+      }
+    } catch (error) {
+      console.error("無法設定路徑:", error);
+      alert("設定失敗");
+    }
+    setOpenMenu(null);
+  };
+
   return (
     <div className="app-wrapper">
       {/* Top Menu Bar */}
@@ -130,6 +150,10 @@ function App() {
           </button>
           {openMenu === "file" && (
             <div className="dropdown-menu">
+              <button className="dropdown-item" onClick={handleSetProjectPath}>
+                設定專案路徑
+              </button>
+              <div className="dropdown-divider"></div>
               <button className="dropdown-item" onClick={handleUninstall}>
                 解除安裝
               </button>

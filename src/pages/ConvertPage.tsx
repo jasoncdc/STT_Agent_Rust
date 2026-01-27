@@ -67,7 +67,7 @@ export function ConvertPage() {
     return (
         <div>
             <h2 className="page-title">轉檔模組</h2>
-            <p className="page-description">將影音檔案轉換為 MP3 格式，儲存至 ~/Downloads</p>
+            <p className="page-description">將影音檔案轉換為 MP3 格式</p>
 
             <div className="btn-group">
                 <button className="btn btn-secondary" onClick={selectFiles} disabled={loading}>
