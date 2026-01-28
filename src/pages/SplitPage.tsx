@@ -16,23 +16,6 @@ interface Segment {
     endTime: string;   // HH:MM:SS 格式
 }
 
-// 時間格式轉換：HH:MM:SS -> 秒數
-function parseTimeToSeconds(timeStr: string): number {
-    const parts = timeStr.split(":").map(Number);
-    if (parts.length === 3) {
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    return 0;
-}
-
-// 秒數 -> HH:MM:SS 格式
-function formatTimeInput(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-}
-
 // 自動格式化時間輸入：01 -> 01, 0112 -> 01:12, 011223 -> 01:12:23
 function formatTimeString(input: string): string {
     // 移除所有非數字字元
