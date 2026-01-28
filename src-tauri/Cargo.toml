@@ -1,6 +1,6 @@
 [package]
 name = "stt_agent_rust"
-version = "1.0.1"
+version = "1.0.2"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -54,3 +54,7 @@ symphonia = { version = "0.5", features = [
 ] }
 ringbuf = "0.4"
 cpal = "0.15"
+
+# --- Report Generation Dependencies ---
+chrono = "0.4"
+reqwest = { version = "0.12", features = ["json", "multipart"] }

@@ -105,6 +105,8 @@ pub fn set_project_root_dir(path: String) -> Result<String, String> {
 }
 
 #[command]
+#[deprecated(note = "使用 split_audio_segments 替代")]
+#[allow(deprecated)]
 pub fn run_split_cmd() -> String {
     let splitter = Splitter::new();
     splitter.execute();

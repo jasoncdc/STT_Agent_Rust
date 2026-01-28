@@ -51,7 +51,11 @@ const ReportIcon = () => (
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("convert");
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem("app-font-size");
+    const initial = saved ? parseInt(saved, 10) : 16;
+    return isNaN(initial) ? 16 : initial;
+  });
   const [theme, setTheme] = useState<Theme>("dark");
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -73,9 +77,10 @@ function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 更新字體大小
+  // 更新字體大小並儲存
   useEffect(() => {
     document.documentElement.style.fontSize = `${fontSize}px`;
+    localStorage.setItem("app-font-size", fontSize.toString());
   }, [fontSize]);
 
   // 更新主題

@@ -6,5 +6,6 @@ use stt_agent_rust_lib::services::Splitter;
 fn main() {
     println!("--- 測試 Split ---");
     let splitter = Splitter::new();
+    #[allow(deprecated)]
     splitter.execute();
 }

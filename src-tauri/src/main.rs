@@ -17,11 +17,14 @@ fn main() {
             commands::audio_cmd::run_convert_cmd,
             commands::audio_cmd::convert_files_to_mp3,
             commands::audio_cmd::set_project_root_dir,
+            #[allow(deprecated)]
             commands::audio_cmd::run_split_cmd,
             commands::audio_cmd::run_silence_cmd,
             commands::audio_cmd::split_audio_segments,
+            #[allow(deprecated)]
             commands::report_cmd::run_report_cmd,
-            commands::report_cmd::run_report_cmd,
+            commands::report_cmd::generate_report,
+            commands::report_cmd::convert_md_to_docx,
             commands::app_cmd::exit_app,
             commands::app_cmd::uninstall_app,
             // Audio player commands

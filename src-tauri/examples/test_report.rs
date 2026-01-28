@@ -13,7 +13,16 @@ async fn main() {
     });
 
     let agent = ReportAgent::new(api_key);
-    match agent.execute().await {
+
+    // 使用當前目錄作為測試輸入
+    let folder_path = ".";
+    let output_path = "test_report_output.md";
+    let custom_prompt = None;
+
+    match agent
+        .process_folder(folder_path, output_path, custom_prompt)
+        .await
+    {
         Ok(reply) => println!("執行成功: {}", reply),
         Err(e) => println!("執行失敗: {}", e),
     }

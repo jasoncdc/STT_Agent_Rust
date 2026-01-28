@@ -16,6 +16,11 @@
           "name": "ffmpeg",
           "sidecar": true,
           "args": true
+        },
+        {
+          "name": "pandoc",
+          "cmd": "pandoc",
+          "args": true
         }
       ]
     }
