@@ -1,6 +1,6 @@
 [package]
 name = "stt_agent_rust"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -44,6 +44,13 @@ tauri-plugin-shell = "2"
 
 # --- Audio Player Dependencies ---
 # Low-latency audio decoding and playback
-symphonia = { version = "0.5", features = ["mp3", "isomp4", "aac", "flac", "wav", "pcm"] }
+symphonia = { version = "0.5", features = [
+    "mp3",
+    "isomp4",
+    "aac",
+    "flac",
+    "wav",
+    "pcm",
+] }
 ringbuf = "0.4"
 cpal = "0.15"
