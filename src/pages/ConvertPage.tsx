@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useI18n } from "../i18n";
 
 export function ConvertPage() {
+    const { t, language } = useI18n();
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -13,11 +15,11 @@ export function ConvertPage() {
                 multiple: true,
                 filters: [
                     {
-                        name: "影音檔案",
+                        name: language === "zh" ? "影音檔案" : "Audio/Video Files",
                         extensions: ["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "mp3", "wav", "flac", "aac", "ogg", "m4a", "wma"],
                     },
                     {
-                        name: "所有檔案",
+                        name: language === "zh" ? "所有檔案" : "All Files",
                         extensions: ["*"],
                     },
                 ],
@@ -26,21 +28,21 @@ export function ConvertPage() {
             if (files) {
                 const fileList = Array.isArray(files) ? files : [files];
                 setSelectedFiles(fileList);
-                setOutput(`已選擇 ${fileList.length} 個檔案`);
+                setOutput(t.filesSelected.replace("{count}", fileList.length.toString()));
             }
         } catch (err) {
-            setOutput(`選擇檔案錯誤: ${err}`);
+            setOutput(`${t.selectFileError}: ${err}`);
         }
     }
 
     async function runConvert() {
         if (selectedFiles.length === 0) {
-            setOutput("請先選擇檔案！");
+            setOutput(t.pleaseSelectFile);
             return;
         }
 
         setLoading(true);
-        setOutput("轉檔中，請稍候...");
+        setOutput(t.converting);
 
         try {
             const result = await invoke("convert_files_to_mp3", {
@@ -48,7 +50,7 @@ export function ConvertPage() {
             });
             setOutput(result as string);
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -66,25 +68,25 @@ export function ConvertPage() {
 
     return (
         <div>
-            <h2 className="page-title">轉檔模組</h2>
-            <p className="page-description">將影音檔案轉換為 MP3 格式</p>
+            <h2 className="page-title">{t.convertTitle}</h2>
+            <p className="page-description">{t.convertDescription}</p>
 
             <div className="btn-group">
                 <button className="btn btn-secondary" onClick={selectFiles} disabled={loading}>
-                    選擇檔案
+                    {t.selectFiles}
                 </button>
                 <button className="btn btn-primary" onClick={runConvert} disabled={loading || selectedFiles.length === 0}>
                     {loading && <span className="loading-spinner"></span>}
-                    {loading ? "轉檔中..." : "開始轉檔"}
+                    {loading ? t.converting : t.startConvert}
                 </button>
                 <button className="btn btn-secondary" onClick={clearFiles} disabled={loading}>
-                    清除
+                    {t.clear}
                 </button>
             </div>
 
             {selectedFiles.length > 0 && (
                 <div className="file-list-card">
-                    <div className="file-list-header">已選擇的檔案 ({selectedFiles.length})</div>
+                    <div className="file-list-header">{t.selectedFiles} ({selectedFiles.length})</div>
                     <ul className="file-list">
                         {selectedFiles.map((file, index) => (
                             <li key={index} className="file-list-item">
@@ -96,7 +98,7 @@ export function ConvertPage() {
             )}
 
             {output && (
-                <div className={`output-box ${output.includes("錯誤") ? "error" : ""}`}>
+                <div className={`output-box ${output.includes(t.error) ? "error" : ""}`}>
                     {output}
                 </div>
             )}

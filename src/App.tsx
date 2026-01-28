@@ -8,6 +8,7 @@ import { ConvertPage } from "./pages/ConvertPage";
 import { SplitPage } from "./pages/SplitPage";
 import { SilencePage } from "./pages/SilencePage";
 import { ReportPage } from "./pages/ReportPage";
+import { useI18n } from "./i18n";
 
 type Tab = "convert" | "split" | "silence" | "report";
 type MenuOpen = "file" | "edit" | null;
@@ -48,22 +49,33 @@ const ReportIcon = () => (
   </svg>
 );
 
+
 function App() {
+  const { language, setLanguage, t } = useI18n();
+  
   const [activeTab, setActiveTab] = useState<Tab>("convert");
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
+  const [showAbout, setShowAbout] = useState(false);
+  
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem("app-font-size");
     const initial = saved ? parseInt(saved, 10) : 16;
     return isNaN(initial) ? 16 : initial;
   });
-  const [theme, setTheme] = useState<Theme>("dark");
+  
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem("app-theme");
+    return saved === "light" ? "light" : "dark";
+  });
+  
+  
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const menuItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "convert", label: "轉檔", icon: <ConvertIcon /> },
-    { id: "split", label: "切割", icon: <SplitIcon /> },
-    { id: "silence", label: "靜音", icon: <SilenceIcon /> },
-    { id: "report", label: "報告", icon: <ReportIcon /> },
+  const menuItems: { id: Tab; labelKey: keyof typeof t; icon: React.ReactNode }[] = [
+    { id: "convert", labelKey: "convert", icon: <ConvertIcon /> },
+    { id: "split", labelKey: "split", icon: <SplitIcon /> },
+    { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
+    { id: "report", labelKey: "report", icon: <ReportIcon /> },
   ];
 
   // 點擊外部關閉選單
@@ -83,10 +95,13 @@ function App() {
     localStorage.setItem("app-font-size", fontSize.toString());
   }, [fontSize]);
 
-  // 更新主題
+  // 更新主題並儲存
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("app-theme", theme);
   }, [theme]);
+
+
 
   const handleExit = async () => {
     await invoke("exit_app");
@@ -97,7 +112,9 @@ function App() {
       await invoke("uninstall_app");
     } catch (error) {
       console.error("Uninstall failed:", error);
-      alert("無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)");
+      alert(language === "zh" 
+        ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
+        : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)");
     }
   };
 
@@ -123,27 +140,61 @@ function App() {
     setOpenMenu(null);
   };
 
+  const handleSetLanguageChinese = () => {
+    setLanguage("zh");
+    setOpenMenu(null);
+  };
+
+  const handleSetLanguageEnglish = () => {
+    setLanguage("en");
+    setOpenMenu(null);
+  };
+
+  const handleShowAbout = () => {
+    setShowAbout(true);
+    setOpenMenu(null);
+  };
+
   const handleSetProjectPath = async () => {
     try {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "選擇新的專案預設路徑",
+        title: language === "zh" ? "選擇新的專案預設路徑" : "Select new project path",
       });
 
       if (selected && typeof selected === "string") {
         await invoke("set_project_root_dir", { path: selected });
-        alert(`已設定新的專案路徑: ${selected}`);
+        alert(language === "zh" 
+          ? `已設定新的專案路徑: ${selected}`
+          : `Project path set to: ${selected}`);
       }
     } catch (error) {
       console.error("無法設定路徑:", error);
-      alert("設定失敗");
+      alert(language === "zh" ? "設定失敗" : "Setting failed");
     }
     setOpenMenu(null);
   };
 
+
   return (
     <div className="app-wrapper">
+      {/* About Dialog */}
+      {showAbout && (
+        <div className="modal-overlay" onClick={() => setShowAbout(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{t.aboutTitle}</h2>
+            <div className="about-info">
+              <p><strong>{t.version}:</strong> 1.0.2</p>
+              <p>{t.description}</p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setShowAbout(false)}>
+              {t.close}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Menu Bar */}
       <div className="menu-bar" ref={menuRef}>
         <div className="menu-item-wrapper">
@@ -151,19 +202,24 @@ function App() {
             className={`menu-button ${openMenu === "file" ? "active" : ""}`}
             onClick={() => setOpenMenu(openMenu === "file" ? null : "file")}
           >
-            檔案
+            {t.file}
           </button>
           {openMenu === "file" && (
             <div className="dropdown-menu">
+
               <button className="dropdown-item" onClick={handleSetProjectPath}>
-                設定專案路徑
+                {t.setProjectPath}
+              </button>
+              <div className="dropdown-divider"></div>
+              <button className="dropdown-item" onClick={handleShowAbout}>
+                {t.about}
               </button>
               <div className="dropdown-divider"></div>
               <button className="dropdown-item" onClick={handleUninstall}>
-                解除安裝
+                {t.uninstall}
               </button>
               <button className="dropdown-item" onClick={handleExit}>
-                結束
+                {t.exit}
               </button>
             </div>
           )}
@@ -173,30 +229,30 @@ function App() {
             className={`menu-button ${openMenu === "edit" ? "active" : ""}`}
             onClick={() => setOpenMenu(openMenu === "edit" ? null : "edit")}
           >
-            編輯
+            {t.edit}
           </button>
           {openMenu === "edit" && (
             <div className="dropdown-menu">
               <div className="dropdown-submenu-wrapper">
                 <button className="dropdown-item has-submenu">
-                  字體
+                  {t.font}
                   <span className="submenu-arrow">›</span>
                 </button>
                 <div className="dropdown-submenu">
                   <button className="dropdown-item" onClick={handleZoomIn}>
-                    放大
+                    {t.zoomIn}
                   </button>
                   <button className="dropdown-item" onClick={handleZoomOut}>
-                    縮小
+                    {t.zoomOut}
                   </button>
                   <button className="dropdown-item" onClick={handleResetZoom}>
-                    重設大小
+                    {t.resetZoom}
                   </button>
                 </div>
               </div>
               <div className="dropdown-submenu-wrapper">
                 <button className="dropdown-item has-submenu">
-                  外觀
+                  {t.appearance}
                   <span className="submenu-arrow">›</span>
                 </button>
                 <div className="dropdown-submenu">
@@ -204,13 +260,33 @@ function App() {
                     className={`dropdown-item ${theme === "dark" ? "selected" : ""}`}
                     onClick={handleSetThemeDark}
                   >
-                    深色模式
+                    {t.darkMode}
                   </button>
                   <button
                     className={`dropdown-item ${theme === "light" ? "selected" : ""}`}
                     onClick={handleSetThemeLight}
                   >
-                    淺色模式
+                    {t.lightMode}
+                  </button>
+                </div>
+              </div>
+              <div className="dropdown-submenu-wrapper">
+                <button className="dropdown-item has-submenu">
+                  {t.language}
+                  <span className="submenu-arrow">›</span>
+                </button>
+                <div className="dropdown-submenu">
+                  <button
+                    className={`dropdown-item ${language === "zh" ? "selected" : ""}`}
+                    onClick={handleSetLanguageChinese}
+                  >
+                    {t.chinese}
+                  </button>
+                  <button
+                    className={`dropdown-item ${language === "en" ? "selected" : ""}`}
+                    onClick={handleSetLanguageEnglish}
+                  >
+                    {t.english}
                   </button>
                 </div>
               </div>
@@ -222,7 +298,7 @@ function App() {
       <div className="app-layout">
         {/* Sidebar */}
         <aside className="sidebar">
-          <h2 className="sidebar-title">會議轉錄助理</h2>
+          <h2 className="sidebar-title">{t.appTitle}</h2>
           <nav className="sidebar-nav">
             {menuItems.map((item) => (
               <button
@@ -231,7 +307,7 @@ function App() {
                 className={`sidebar-item ${activeTab === item.id ? "active" : ""}`}
               >
                 <span className="sidebar-icon">{item.icon}</span>
-                <span className="sidebar-label">{item.label}</span>
+                <span className="sidebar-label">{t[item.labelKey] as string}</span>
               </button>
             ))}
           </nav>

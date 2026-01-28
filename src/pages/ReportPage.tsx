@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useI18n } from "../i18n";
 
 export function ReportPage() {
+    const { t, language } = useI18n();
     const [apiKey, setApiKey] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
     const [folderPath, setFolderPath] = useState("");
@@ -18,14 +20,14 @@ export function ReportPage() {
             const selected = await open({
                 directory: true,
                 multiple: false,
-                title: "選擇音檔資料夾",
+                title: language === "zh" ? "選擇音檔資料夾" : "Select Audio Folder",
             });
 
             if (selected && typeof selected === "string") {
                 setFolderPath(selected);
             }
         } catch (err) {
-            setOutput(`選擇資料夾錯誤: ${err}`);
+            setOutput(`${t.selectFileError}: ${err}`);
         }
     }
 
@@ -34,7 +36,7 @@ export function ReportPage() {
         try {
             const selected = await open({
                 multiple: false,
-                title: "選擇自定義 Prompt (.txt)",
+                title: language === "zh" ? "選擇自定義 Prompt (.txt)" : "Select Custom Prompt (.txt)",
                 filters: [{ name: "Text", extensions: ["txt"] }],
             });
 
@@ -42,23 +44,23 @@ export function ReportPage() {
                 setCustomPromptPath(selected);
             }
         } catch (err) {
-            setOutput(`選擇 Prompt 檔案錯誤: ${err}`);
+            setOutput(`${t.selectFileError}: ${err}`);
         }
     }
 
     // 生成報告
     async function runReport() {
         if (!apiKey) {
-            setOutput("錯誤: 請先輸入 Gemini API Key");
+            setOutput(`${t.error}: ${t.errorApiKey}`);
             return;
         }
         if (!folderPath) {
-            setOutput("錯誤: 請先選擇音檔資料夾");
+            setOutput(`${t.error}: ${t.errorSelectFolder}`);
             return;
         }
 
         setLoading(true);
-        setOutput("正在處理音檔並生成報告，這可能需要幾分鐘...");
+        setOutput(t.processingReport);
         setReportPath("");
 
         try {
@@ -75,7 +77,7 @@ export function ReportPage() {
                 setReportPath(match[1]);
             }
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -86,7 +88,7 @@ export function ReportPage() {
         try {
             const selected = await open({
                 multiple: false,
-                title: "選擇 Markdown 報告檔案",
+                title: language === "zh" ? "選擇 Markdown 報告檔案" : "Select Markdown Report File",
                 filters: [{ name: "Markdown", extensions: ["md"] }],
             });
 
@@ -94,19 +96,19 @@ export function ReportPage() {
                 setReportPath(selected);
             }
         } catch (err) {
-            setOutput(`選擇檔案錯誤: ${err}`);
+            setOutput(`${t.selectFileError}: ${err}`);
         }
     }
 
     // 轉換為 DOCX
     async function convertToDocx() {
         if (!reportPath) {
-            setOutput("錯誤: 請先選擇報告檔案");
+            setOutput(`${t.error}: ${t.errorSelectReport}`);
             return;
         }
 
         setConverting(true);
-        setOutput("正在轉換為 DOCX...");
+        setOutput(t.convertingToDocx);
 
         try {
             const result = await invoke("convert_md_to_docx", {
@@ -114,7 +116,7 @@ export function ReportPage() {
             });
             setOutput(result as string);
         } catch (err) {
-            setOutput(`轉換錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setConverting(false);
         }
@@ -122,18 +124,18 @@ export function ReportPage() {
 
     return (
         <div>
-            <h2 className="page-title">📄 報告生成</h2>
-            <p className="page-description">使用 Gemini AI 分析音檔並產出逐字稿報告。</p>
+            <h2 className="page-title">📄 {t.reportTitle}</h2>
+            <p className="page-description">{t.reportDescription}</p>
 
             {/* 資料夾選擇 */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
-                <label className="input-label">音檔資料夾 (通常是 02_split/)</label>
+                <label className="input-label">{t.audioFolder}</label>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <input
                         type="text"
                         className="input"
                         value={folderPath}
-                        placeholder="請選擇資料夾..."
+                        placeholder={t.selectFolderPlaceholder}
                         readOnly
                         style={{ flex: 1, maxWidth: "500px" }}
                     />
@@ -141,20 +143,20 @@ export function ReportPage() {
                         className="btn btn-secondary"
                         onClick={handleSelectFolder}
                     >
-                        📁 選擇資料夾
+                        📁 {t.selectFolder}
                     </button>
                 </div>
             </div>
 
             {/* API Key 輸入 */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
-                <label className="input-label">Google Gemini API Key</label>
+                <label className="input-label">{t.apiKeyLabel}</label>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <input
                         type={showApiKey ? "text" : "password"}
                         className="input"
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="輸入您的 API Key"
+                        placeholder={t.apiKeyPlaceholder}
                         value={apiKey}
                         style={{ flex: 1, maxWidth: "400px" }}
                     />
@@ -163,20 +165,20 @@ export function ReportPage() {
                         onClick={() => setShowApiKey(!showApiKey)}
                         style={{ minWidth: "80px" }}
                     >
-                        {showApiKey ? "🙈 隱藏" : "👁️ 顯示"}
+                        {showApiKey ? `🙈 ${t.hide}` : `👁️ ${t.show}`}
                     </button>
                 </div>
             </div>
 
             {/* 自定義 Prompt 輸入 */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
-                <label className="input-label">自定義 Prompt (選填，.txt)</label>
+                <label className="input-label">{t.customPrompt}</label>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <input
                         type="text"
                         className="input"
                         value={customPromptPath}
-                        placeholder="預設使用內建 Prompt，可選 .txt 覆蓋..."
+                        placeholder={t.customPromptPlaceholder}
                         readOnly
                         style={{ flex: 1, maxWidth: "500px" }}
                     />
@@ -184,7 +186,7 @@ export function ReportPage() {
                         className="btn btn-secondary"
                         onClick={handleSelectPromptFile}
                     >
-                        📝 選擇 Prompt
+                        📝 {t.selectPrompt}
                     </button>
                     {customPromptPath && (
                         <button
@@ -192,7 +194,7 @@ export function ReportPage() {
                             onClick={() => setCustomPromptPath("")}
                             style={{ backgroundColor: "#e74c3c" }}
                         >
-                            🗑️ 清除
+                            🗑️ {t.clear}
                         </button>
                     )}
                 </div>
@@ -206,7 +208,7 @@ export function ReportPage() {
                     disabled={loading || converting}
                 >
                     {loading && <span className="loading-spinner"></span>}
-                    {loading ? "生成中..." : "🚀 生成報告 (自動產出 Word 檔)"}
+                    {loading ? t.generating : `🚀 ${t.generateReport}`}
                 </button>
             </div>
 
@@ -214,16 +216,16 @@ export function ReportPage() {
             <hr style={{ margin: "20px 0", borderColor: "#444" }} />
 
             {/* 轉換為 DOCX 區塊 */}
-            <h3 style={{ marginBottom: "15px", fontSize: "1rem", color: "#888" }}>🛠️ 手動工具：轉換 markdown 為 Word 文件</h3>
+            <h3 style={{ marginBottom: "15px", fontSize: "1rem", color: "#888" }}>🛠️ {t.manualTools}</h3>
 
             <div className="input-group" style={{ marginBottom: "15px" }}>
-                <label className="input-label">選擇報告檔案 (.md)</label>
+                <label className="input-label">{t.selectReportFile}</label>
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                     <input
                         type="text"
                         className="input"
                         value={reportPath}
-                        placeholder="請選擇 report.md 檔案..."
+                        placeholder={t.selectReportPlaceholder}
                         readOnly
                         style={{ flex: 1, maxWidth: "500px" }}
                     />
@@ -232,7 +234,7 @@ export function ReportPage() {
                         onClick={handleSelectMdFile}
                         disabled={converting}
                     >
-                        📂 選擇檔案
+                        📂 {t.selectFile}
                     </button>
                 </div>
             </div>
@@ -244,14 +246,14 @@ export function ReportPage() {
                     disabled={loading || converting || !reportPath}
                 >
                     {converting && <span className="loading-spinner"></span>}
-                    {converting ? "轉換中..." : "📝 轉換為 DOCX"}
+                    {converting ? t.convertingDocx : `📝 ${t.convertToDocx}`}
                 </button>
             </div>
 
             {/* 輸出區域 */}
             {output && (
                 <div
-                    className={`output-box ${output.includes("錯誤") ? "error" : ""}`}
+                    className={`output-box ${output.includes(t.error) ? "error" : ""}`}
                     style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}
                 >
                     {output}

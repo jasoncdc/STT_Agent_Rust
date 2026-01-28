@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useI18n } from "../i18n";
 
 interface PlaybackState {
     position: number;
@@ -42,6 +43,7 @@ function formatTimeString(input: string): string {
 }
 
 export function SplitPage() {
+    const { t } = useI18n();
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -160,7 +162,7 @@ export function SplitPage() {
 
             if (selected && typeof selected === "string") {
                 setLoading(true);
-                setOutput("載入中...");
+                setOutput(t.loading);
 
                 const durationStr = await invoke<string>("load_track", { path: selected });
                 const dur = parseFloat(durationStr);
@@ -170,10 +172,10 @@ export function SplitPage() {
                 setIsLoaded(true);
                 setIsPlaying(false);
                 setAudioFilePath(selected); // 儲存音檔路徑
-                setOutput(`已載入: ${selected.split(/[/\\]/).pop()}`);
+                setOutput(`${t.loaded}: ${selected.split(/[/\\]/).pop()}`);
             }
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -190,7 +192,7 @@ export function SplitPage() {
                 setIsPlaying(true);
             }
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         }
     }
 
@@ -200,7 +202,7 @@ export function SplitPage() {
             await invoke("seek", { seconds });
             setCurrentTime(seconds);
         } catch (err) {
-            setOutput(`Seek 錯誤: ${err}`);
+            setOutput(`Seek ${t.error}: ${err}`);
         }
     }
 
@@ -248,7 +250,7 @@ export function SplitPage() {
     async function runSplit() {
         // 驗證是否已載入音檔
         if (!audioFilePath) {
-            setOutput("錯誤: 請先載入音訊檔案");
+            setOutput(`${t.error}: ${t.errorLoadAudio}`);
             return;
         }
 
@@ -257,12 +259,12 @@ export function SplitPage() {
             (s) => s.name.trim() && s.startTime && s.endTime
         );
         if (validSegments.length === 0) {
-            setOutput("錯誤: 請至少設定一個完整的段落（名稱、開始時間、結束時間）");
+            setOutput(`${t.error}: ${t.errorSetSegment}`);
             return;
         }
 
         setLoading(true);
-        setOutput("執行中...");
+        setOutput(t.processing);
         try {
             // 傳送段落資料到後端
             const result = await invoke("split_audio_segments", {
@@ -275,7 +277,7 @@ export function SplitPage() {
             });
             setOutput(result as string);
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -283,12 +285,12 @@ export function SplitPage() {
 
     return (
         <div>
-            <h2 className="page-title">切割模組</h2>
-            <p className="page-description">將長錄音切分成小片段，方便後續處理。</p>
+            <h2 className="page-title">{t.splitTitle}</h2>
+            <p className="page-description">{t.splitDescription}</p>
 
             {/* Audio Player Section */}
             <div className="audio-player-section">
-                <h3>🎵 音訊播放器</h3>
+                <h3>🎵 {t.audioPlayer}</h3>
 
                 {/* Load Button */}
                 <div style={{ marginBottom: "16px" }}>
@@ -298,7 +300,7 @@ export function SplitPage() {
                         disabled={loading}
                         style={{ marginRight: "10px" }}
                     >
-                        📂 載入音訊
+                        📂 {t.loadAudio}
                     </button>
 
                     {isLoaded && (
@@ -307,7 +309,7 @@ export function SplitPage() {
                             onClick={handlePlayPause}
                             disabled={loading}
                         >
-                            {isPlaying ? "⏸️ 暫停" : "▶️ 播放"}
+                            {isPlaying ? `⏸️ ${t.pause}` : `▶️ ${t.play}`}
                         </button>
                     )}
                 </div>
@@ -370,13 +372,13 @@ export function SplitPage() {
             {/* Segment Table Section */}
             <div className="segment-table-section" style={{ marginTop: "24px", marginBottom: "24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <h3 style={{ margin: 0 }}>📋 段落列表</h3>
+                    <h3 style={{ margin: 0 }}>📋 {t.segmentList}</h3>
                     <button
                         onClick={addSegment}
                         className="btn btn-secondary"
                         style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px" }}
                     >
-                        ➕ 新增段落
+                        ➕ {t.addSegment}
                     </button>
                 </div>
 
@@ -389,21 +391,21 @@ export function SplitPage() {
                 }}>
                     <thead>
                         <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
-                            <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>段落名稱</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>開始時間</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>結束時間</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>操作</th>
+                            <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>{t.segmentName}</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.startTime}</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.endTime}</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>{t.action}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {segments.map((segment) => (
                             <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
-                                <td style={{ padding: "8px 4px", width: "200px" }}>
+                                <td style={{ padding: "8px 4px 8px 16px", width: "200px" }}>
                                     <input
                                         type="text"
                                         value={segment.name}
                                         onChange={(e) => updateSegment(segment.id, "name", e.target.value)}
-                                        placeholder="例如：個案1"
+                                        placeholder={t.exampleName}
                                         style={{
                                             width: "100%",
                                             padding: "8px",
@@ -455,14 +457,17 @@ export function SplitPage() {
                                         onClick={() => deleteSegment(segment.id)}
                                         disabled={segments.length <= 1}
                                         style={{
-                                            padding: "6px 12px",
+                                            padding: "8px 16px",
                                             border: "none",
-                                            borderRadius: "4px",
-                                            backgroundColor: segments.length <= 1 ? "#555" : "#dc3545",
+                                            borderRadius: "8px",
+                                            backgroundColor: segments.length <= 1 ? "#555" : "#e74c3c",
                                             color: "#fff",
-                                            cursor: segments.length <= 1 ? "not-allowed" : "pointer"
+                                            cursor: segments.length <= 1 ? "not-allowed" : "pointer",
+                                            fontWeight: "bold",
+                                            fontSize: "14px",
+                                            transition: "all 0.2s ease"
                                         }}
-                                        title={segments.length <= 1 ? "至少需要一個段落" : "刪除段落"}
+                                        title={segments.length <= 1 ? t.needAtLeastOneSegment : t.deleteSegment}
                                     >
                                         🗑️
                                     </button>
@@ -478,12 +483,12 @@ export function SplitPage() {
             <div className="btn-group">
                 <button className="btn btn-primary" onClick={runSplit} disabled={loading}>
                     {loading && <span className="loading-spinner"></span>}
-                    {loading ? "執行中..." : "執行切割"}
+                    {loading ? t.splitting : t.runSplit}
                 </button>
             </div>
 
             {output && (
-                <div className={`output-box ${output.includes("錯誤") ? "error" : ""}`}>
+                <div className={`output-box ${output.includes(t.error) ? "error" : ""}`}>
                     {output}
                 </div>
             )}

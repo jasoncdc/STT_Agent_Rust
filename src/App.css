@@ -219,6 +219,85 @@ html, body {
   background: var(--bg-hover);
 }
 
+/* Recent Files Submenu */
+.recent-files-submenu {
+  min-width: 200px;
+  max-width: 350px;
+}
+
+.recent-file-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-item.disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-content h2 {
+  margin: 0 0 20px 0;
+  font-size: 1.4rem;
+  color: var(--text-primary);
+}
+
+.about-info {
+  margin-bottom: 24px;
+}
+
+.about-info p {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.about-info strong {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .modal-content {
+  background: #ffffff;
+}
+
 /* ==================== App Layout ==================== */
 .app-layout {
   display: flex;

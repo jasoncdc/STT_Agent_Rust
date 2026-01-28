@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "../i18n";
 
 export function SilencePage() {
+    const { t } = useI18n();
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
 
     async function runSilence() {
         setLoading(true);
-        setOutput("執行中...");
+        setOutput(t.processing);
         try {
             const result = await invoke("run_silence_cmd");
             setOutput(result as string);
         } catch (err) {
-            setOutput(`錯誤: ${err}`);
+            setOutput(`${t.error}: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -20,18 +22,18 @@ export function SilencePage() {
 
     return (
         <div>
-            <h2 className="page-title">靜音偵測</h2>
-            <p className="page-description">分析音訊中的靜音片段並進行處理。</p>
+            <h2 className="page-title">{t.silenceTitle}</h2>
+            <p className="page-description">{t.silenceDescription}</p>
 
             <div className="btn-group">
                 <button className="btn btn-primary" onClick={runSilence} disabled={loading}>
                     {loading && <span className="loading-spinner"></span>}
-                    {loading ? "偵測中..." : "執行偵測"}
+                    {loading ? t.detecting : t.runDetection}
                 </button>
             </div>
 
             {output && (
-                <div className={`output-box ${output.includes("錯誤") ? "error" : ""}`}>
+                <div className={`output-box ${output.includes(t.error) ? "error" : ""}`}>
                     {output}
                 </div>
             )}
