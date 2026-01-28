@@ -117,3 +117,64 @@ pub fn run_silence_cmd() -> String {
     silence.execute();
     "Silence 完成 (Layered Arch)".to_string()
 }
+
+/// 段落資訊（從前端傳入）
+#[derive(serde::Deserialize)]
+pub struct SegmentInfo {
+    pub name: String,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
+    #[serde(rename = "endTime")]
+    pub end_time: String,
+}
+
+/// 切割音訊檔案
+/// 根據傳入的段落列表，將音檔切割成多個片段
+#[command]
+pub async fn split_audio_segments(
+    app: tauri::AppHandle,
+    audio_path: String,
+    segments: Vec<SegmentInfo>,
+) -> Result<String, String> {
+    if audio_path.is_empty() {
+        return Err("未載入音訊檔案".to_string());
+    }
+
+    if segments.is_empty() {
+        return Err("未設定任何段落".to_string());
+    }
+
+    // 驗證段落資料
+    for (i, seg) in segments.iter().enumerate() {
+        if seg.name.trim().is_empty() {
+            return Err(format!("第 {} 個段落名稱不能為空", i + 1));
+        }
+        if seg.start_time.is_empty() || seg.end_time.is_empty() {
+            return Err(format!("第 {} 個段落 '{}' 的時間不完整", i + 1, seg.name));
+        }
+    }
+
+    // 使用 ProjectPaths 建立輸出目錄 (02_split)
+    let project_paths = crate::services::ProjectPaths::new(&audio_path)?;
+    project_paths.create_all_dirs()?;
+    let output_dir_str = project_paths.split.to_string_lossy().to_string();
+
+    // 轉換段落資料格式
+    let segment_tuples: Vec<(String, String, String)> = segments
+        .into_iter()
+        .map(|s| (s.name, s.start_time, s.end_time))
+        .collect();
+
+    // 執行切割
+    let splitter = Splitter::new();
+    let output_files = splitter
+        .split_segments(&app, &audio_path, &output_dir_str, segment_tuples)
+        .await?;
+
+    Ok(format!(
+        "切割完成！共產生 {} 個檔案\n輸出目錄: {}\n\n{}",
+        output_files.len(),
+        output_dir_str,
+        output_files.join("\n")
+    ))
+}

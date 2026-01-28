@@ -8,17 +8,74 @@ interface PlaybackState {
     is_playing: boolean;
 }
 
+// 段落資料結構
+interface Segment {
+    id: number;
+    name: string;
+    startTime: string; // HH:MM:SS 格式
+    endTime: string;   // HH:MM:SS 格式
+}
+
+// 時間格式轉換：HH:MM:SS -> 秒數
+function parseTimeToSeconds(timeStr: string): number {
+    const parts = timeStr.split(":").map(Number);
+    if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    return 0;
+}
+
+// 秒數 -> HH:MM:SS 格式
+function formatTimeInput(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+}
+
+// 自動格式化時間輸入：01 -> 01, 0112 -> 01:12, 011223 -> 01:12:23
+function formatTimeString(input: string): string {
+    // 移除所有非數字字元
+    const digits = input.replace(/\D/g, "");
+
+    // 最多 6 位數字 (HHMMSS)
+    const limited = digits.slice(0, 6);
+
+    if (limited.length <= 2) {
+        // 1-2 位: 秒數
+        return limited;
+    } else if (limited.length <= 4) {
+        // 3-4 位: MM:SS
+        const secs = limited.slice(-2);
+        const mins = limited.slice(0, -2);
+        return `${mins}:${secs}`;
+    } else {
+        // 5-6 位: HH:MM:SS
+        const secs = limited.slice(-2);
+        const mins = limited.slice(-4, -2);
+        const hours = limited.slice(0, -4);
+        return `${hours}:${mins}:${secs}`;
+    }
+}
+
 export function SplitPage() {
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
-    
+
     // Audio player state
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSeeking, setIsSeeking] = useState(false);
-    
+    const [audioFilePath, setAudioFilePath] = useState(""); // 音檔路徑
+
+    // 段落列表狀態
+    const [segments, setSegments] = useState<Segment[]>([
+        { id: 1, name: "", startTime: "", endTime: "" }
+    ]);
+    const [nextId, setNextId] = useState(2);
+
     const positionIntervalRef = useRef<number | null>(null);
 
     // Sync with backend state on mount (in case audio is already loaded)
@@ -53,7 +110,7 @@ export function SplitPage() {
                 }
             }, 100); // Update every 100ms
         }
-        
+
         return () => {
             if (positionIntervalRef.current) {
                 clearInterval(positionIntervalRef.current);
@@ -121,15 +178,16 @@ export function SplitPage() {
             if (selected && typeof selected === "string") {
                 setLoading(true);
                 setOutput("載入中...");
-                
+
                 const durationStr = await invoke<string>("load_track", { path: selected });
                 const dur = parseFloat(durationStr);
-                
+
                 setDuration(dur);
                 setCurrentTime(0);
                 setIsLoaded(true);
                 setIsPlaying(false);
-                setOutput(`已載入: ${selected.split("\\").pop()}`);
+                setAudioFilePath(selected); // 儲存音檔路徑
+                setOutput(`已載入: ${selected.split(/[/\\]/).pop()}`);
             }
         } catch (err) {
             setOutput(`錯誤: ${err}`);
@@ -171,12 +229,67 @@ export function SplitPage() {
         return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
 
+    // 新增段落
+    function addSegment() {
+        const newSegment: Segment = {
+            id: nextId,
+            name: "",
+            startTime: "",
+            endTime: ""
+        };
+        setSegments([...segments, newSegment]);
+        setNextId(nextId + 1);
+    }
+
+    // 刪除段落
+    function deleteSegment(id: number) {
+        if (segments.length > 1) {
+            setSegments(segments.filter(s => s.id !== id));
+        }
+    }
+
+    // 更新段落欄位
+    function updateSegment(id: number, field: keyof Segment, value: string) {
+        // 如果是時間欄位，進行自動格式化
+        let formattedValue = value;
+        if (field === "startTime" || field === "endTime") {
+            formattedValue = formatTimeString(value);
+        }
+
+        setSegments(segments.map(s =>
+            s.id === id ? { ...s, [field]: formattedValue } : s
+        ));
+    }
+
     // Run split command
     async function runSplit() {
+        // 驗證是否已載入音檔
+        if (!audioFilePath) {
+            setOutput("錯誤: 請先載入音訊檔案");
+            return;
+        }
+
+        // 驗證段落資料
+        const validSegments = segments.filter(
+            (s) => s.name.trim() && s.startTime && s.endTime
+        );
+        if (validSegments.length === 0) {
+            setOutput("錯誤: 請至少設定一個完整的段落（名稱、開始時間、結束時間）");
+            return;
+        }
+
         setLoading(true);
         setOutput("執行中...");
         try {
-            const result = await invoke("run_split_cmd");
+            // 傳送段落資料到後端
+            const result = await invoke("split_audio_segments", {
+                audioPath: audioFilePath,
+                segments: validSegments.map((s) => ({
+                    name: s.name.trim(),
+                    startTime: s.startTime,
+                    endTime: s.endTime,
+                })),
+            });
             setOutput(result as string);
         } catch (err) {
             setOutput(`錯誤: ${err}`);
@@ -196,18 +309,18 @@ export function SplitPage() {
 
                 {/* Load Button */}
                 <div style={{ marginBottom: "16px" }}>
-                    <button 
-                        className="btn btn-secondary" 
+                    <button
+                        className="btn btn-secondary"
                         onClick={handleLoadTrack}
                         disabled={loading}
                         style={{ marginRight: "10px" }}
                     >
                         📂 載入音訊
                     </button>
-                    
+
                     {isLoaded && (
-                        <button 
-                            className="btn btn-primary" 
+                        <button
+                            className="btn btn-primary"
                             onClick={handlePlayPause}
                             disabled={loading}
                         >
@@ -219,15 +332,15 @@ export function SplitPage() {
                 {/* Seek Slider */}
                 {isLoaded && (
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{ 
-                            fontSize: "0.9rem", 
+                        <span style={{
+                            fontSize: "0.9rem",
                             fontFamily: "monospace",
                             minWidth: "70px",
                             color: "var(--text-primary)"
                         }}>
                             {formatTime(currentTime)}
                         </span>
-                        
+
                         <input
                             type="range"
                             min={0}
@@ -257,9 +370,9 @@ export function SplitPage() {
                                 accentColor: "var(--accent)"
                             }}
                         />
-                        
-                        <span style={{ 
-                            fontSize: "0.9rem", 
+
+                        <span style={{
+                            fontSize: "0.9rem",
                             fontFamily: "monospace",
                             minWidth: "70px",
                             textAlign: "right",
@@ -269,6 +382,113 @@ export function SplitPage() {
                         </span>
                     </div>
                 )}
+            </div>
+
+            {/* Segment Table Section */}
+            <div className="segment-table-section" style={{ marginTop: "24px", marginBottom: "24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <h3 style={{ margin: 0 }}>📋 段落列表</h3>
+                    <button
+                        onClick={addSegment}
+                        className="btn btn-secondary"
+                        style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px" }}
+                    >
+                        ➕ 新增段落
+                    </button>
+                </div>
+
+                <table style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    backgroundColor: "var(--bg-secondary, #1e1e1e)",
+                    borderRadius: "8px",
+                    overflow: "hidden"
+                }}>
+                    <thead>
+                        <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
+                            <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>段落名稱</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>開始時間</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>結束時間</th>
+                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {segments.map((segment) => (
+                            <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
+                                <td style={{ padding: "8px 4px", width: "200px" }}>
+                                    <input
+                                        type="text"
+                                        value={segment.name}
+                                        onChange={(e) => updateSegment(segment.id, "name", e.target.value)}
+                                        placeholder="例如：個案1"
+                                        style={{
+                                            width: "100%",
+                                            padding: "8px",
+                                            border: "1px solid var(--border, #444)",
+                                            borderRadius: "8px",
+                                            backgroundColor: "var(--bg-primary, #121212)",
+                                            color: segment.name ? "var(--text-primary, #fff)" : "#888"
+                                        }}
+                                    />
+                                </td>
+                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
+                                    <input
+                                        type="text"
+                                        value={segment.startTime}
+                                        onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
+                                        placeholder="00:00:00"
+                                        style={{
+                                            width: "110px",
+                                            padding: "8px",
+                                            border: "1px solid var(--border, #444)",
+                                            borderRadius: "8px",
+                                            backgroundColor: "var(--bg-primary, #121212)",
+                                            color: segment.startTime ? "var(--text-primary, #fff)" : "#888",
+                                            textAlign: "center",
+                                            fontFamily: "monospace"
+                                        }}
+                                    />
+                                </td>
+                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
+                                    <input
+                                        type="text"
+                                        value={segment.endTime}
+                                        onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
+                                        placeholder="00:00:00"
+                                        style={{
+                                            width: "110px",
+                                            padding: "8px",
+                                            border: "1px solid var(--border, #444)",
+                                            borderRadius: "8px",
+                                            backgroundColor: "var(--bg-primary, #121212)",
+                                            color: segment.endTime ? "var(--text-primary, #fff)" : "#888",
+                                            textAlign: "center",
+                                            fontFamily: "monospace"
+                                        }}
+                                    />
+                                </td>
+                                <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                                    <button
+                                        onClick={() => deleteSegment(segment.id)}
+                                        disabled={segments.length <= 1}
+                                        style={{
+                                            padding: "6px 12px",
+                                            border: "none",
+                                            borderRadius: "4px",
+                                            backgroundColor: segments.length <= 1 ? "#555" : "#dc3545",
+                                            color: "#fff",
+                                            cursor: segments.length <= 1 ? "not-allowed" : "pointer"
+                                        }}
+                                        title={segments.length <= 1 ? "至少需要一個段落" : "刪除段落"}
+                                    >
+                                        🗑️
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
             </div>
 
             {/* Split Controls */}

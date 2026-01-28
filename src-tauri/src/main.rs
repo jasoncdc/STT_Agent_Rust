@@ -3,9 +3,9 @@
 
 // src-tauri/src/main.rs
 
+use std::sync::Mutex;
 use stt_agent_rust_lib::commands;
 use stt_agent_rust_lib::commands::player_cmd::AudioPlayerState;
-use std::sync::Mutex;
 
 fn main() {
     tauri::Builder::default()
@@ -19,6 +19,7 @@ fn main() {
             commands::audio_cmd::set_project_root_dir,
             commands::audio_cmd::run_split_cmd,
             commands::audio_cmd::run_silence_cmd,
+            commands::audio_cmd::split_audio_segments,
             commands::report_cmd::run_report_cmd,
             commands::report_cmd::run_report_cmd,
             commands::app_cmd::exit_app,
