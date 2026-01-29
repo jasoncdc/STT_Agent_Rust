@@ -56,13 +56,31 @@ impl ProjectPaths {
     pub fn new(source_path: &str) -> Result<Self, String> {
         let path = Path::new(source_path);
 
-        // 1. 取得主檔名
+        // 1. 嘗試偵測是否已在專案結構中 (01_converted, 02_split, 03_silence, 04_report)
+        // 這樣可以確保後續處理 (如 Silence, Split) 輸出到正確的專案資料夾，而不是新建一個
+        for ancestor in path.ancestors() {
+            if let Some(name) = ancestor.file_name().and_then(|s| s.to_str()) {
+                if ["01_converted", "02_split", "03_silence", "04_report"].contains(&name) {
+                    if let Some(parent) = ancestor.parent() {
+                        let project_root = parent.to_path_buf();
+                        return Ok(Self {
+                            converted: project_root.join("01_converted"),
+                            split: project_root.join("02_split"),
+                            silence: project_root.join("03_silence"),
+                            report: project_root.join("04_report"),
+                            root: project_root,
+                        });
+                    }
+                }
+            }
+        }
+
+        // 2. 如果不在專案結構中，則視為新專案，依照檔名建立
         let stem = path
             .file_stem()
             .and_then(|s| s.to_str())
             .ok_or_else(|| "無法解析檔案名稱，請確認路徑是否正確".to_string())?;
 
-        // 2. 決定根目錄
         let config = Self::load_config();
 
         let root_base = if let Some(custom) = config.custom_project_root {
@@ -99,7 +117,7 @@ impl ProjectPaths {
         fs::create_dir_all(&self.root).map_err(|e| format!("無法建立專案根目錄: {}", e))?;
         fs::create_dir_all(&self.converted).map_err(|e| format!("無法建立轉檔目錄: {}", e))?;
         fs::create_dir_all(&self.split).map_err(|e| format!("無法建立切割目錄: {}", e))?;
-        fs::create_dir_all(&self.silence).map_err(|e| format!("無法建立靜音目錄: {}", e))?;
+        fs::create_dir_all(&self.silence).map_err(|e| format!("無法建立消音目錄: {}", e))?;
         fs::create_dir_all(&self.report).map_err(|e| format!("無法建立報告目錄: {}", e))?;
         Ok(())
     }

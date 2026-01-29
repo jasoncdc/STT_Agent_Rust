@@ -248,6 +248,21 @@ export function SplitPage() {
 
     // Run split command
     async function runSplit() {
+        // Eagerly update report folder to 02_split
+        if (audioFilePath) {
+            try {
+                const separator = audioFilePath.includes("\\") ? "\\" : "/";
+                let possibleRoot = audioFilePath.substring(0, audioFilePath.lastIndexOf(separator));
+                if (possibleRoot.endsWith("01_converted")) {
+                    possibleRoot = possibleRoot.substring(0, possibleRoot.lastIndexOf(separator));
+                }
+                const splitPath = `${possibleRoot}${separator}02_split`;
+                localStorage.setItem("latest_report_folder", splitPath);
+            } catch (e) {
+                console.error("Failed to set early report path", e);
+            }
+        }
+
         // 驗證是否已載入音檔
         if (!audioFilePath) {
             setOutput(`${t.error}: ${t.errorLoadAudio}`);
@@ -265,6 +280,7 @@ export function SplitPage() {
 
         setLoading(true);
         setOutput(t.processing);
+
         try {
             // 傳送段落資料到後端
             const result = await invoke("split_audio_segments", {
@@ -282,6 +298,18 @@ export function SplitPage() {
             setLoading(false);
         }
     }
+
+    // 當分割成功後，儲存 Report 頁面應該預設的路徑 (02_split)
+    useEffect(() => {
+        if (output && (output.includes("切割完成") || output.includes("Split 完成"))) {
+            // 從 output 中嘗試解析路徑
+            const match = output.match(/輸出目錄: (.+)/);
+            if (match) {
+                const path = match[1].trim();
+                localStorage.setItem("latest_report_folder", path);
+            }
+        }
+    }, [output]);
 
     return (
         <div>
@@ -400,7 +428,7 @@ export function SplitPage() {
                     <tbody>
                         {segments.map((segment) => (
                             <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
-                                <td style={{ padding: "8px 4px 8px 16px", width: "200px" }}>
+                                <td style={{ padding: "8px 4px 8px 12px", width: "200px" }}>
                                     <input
                                         type="text"
                                         value={segment.name}

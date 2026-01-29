@@ -29,7 +29,7 @@ export const translations = {
     appTitle: "會議轉錄助理",
     convert: "轉檔",
     split: "切割",
-    silence: "靜音",
+    silence: "消音",
     report: "報告",
     // About Dialog
     aboutTitle: "關於 會議轉錄助理",
@@ -76,14 +76,18 @@ export const translations = {
     errorSetSegment: "請至少設定一個完整的段落（名稱、開始時間、結束時間）",
     loaded: "已載入",
     // SilencePage
-    silenceTitle: "靜音偵測",
-    silenceDescription: "分析音訊中的靜音片段並進行處理。",
-    runDetection: "執行偵測",
-    detecting: "偵測中...",
+    silenceTitle: "消音處理",
+    silenceDescription: "針對敏感片段做消音處理",
+    silenceAudioPlayer: "🎵 音訊播放器", // New Key
+    selectAudioFolder: "📂選擇資料夾", // New Key
+    changeFolder: "更改資料夾", // New Key
+    runDetection: "執行消音處理",
+    detecting: "處理中...",
+    segmentNote: "段落備註 (選填)", // New Key
     // ReportPage
     reportTitle: "報告生成",
     reportDescription: "使用 Gemini AI 分析音檔並產出逐字稿報告。",
-    audioFolder: "音檔資料夾 (通常是 02_split/)",
+    audioFolder: "音檔資料夾",
     selectFolderPlaceholder: "請選擇資料夾...",
     apiKeyLabel: "Google Gemini API Key",
     apiKeyPlaceholder: "輸入您的 API Key",
@@ -179,12 +183,16 @@ export const translations = {
     // SilencePage
     silenceTitle: "Silence Detection",
     silenceDescription: "Analyze and process silent sections in audio files.",
-    runDetection: "Run Detection",
-    detecting: "Detecting...",
+    silenceAudioPlayer: "🎵 Audio Player",
+    selectAudioFolder: "📂 Select Folder",
+    changeFolder: "Change Folder",
+    runDetection: "Run Silence Processor",
+    detecting: "Processing...",
+    segmentNote: "Segment Note (Optional)",
     // ReportPage
     reportTitle: "Report Generation",
     reportDescription: "Use Gemini AI to analyze audio files and generate transcript reports.",
-    audioFolder: "Audio Folder (usually 02_split/)",
+    audioFolder: "Audio Folder",
     selectFolderPlaceholder: "Please select a folder...",
     apiKeyLabel: "Google Gemini API Key",
     apiKeyPlaceholder: "Enter your API Key",

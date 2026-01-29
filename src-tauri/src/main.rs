@@ -21,6 +21,8 @@ fn main() {
             commands::audio_cmd::run_split_cmd,
             commands::audio_cmd::run_silence_cmd,
             commands::audio_cmd::split_audio_segments,
+            commands::audio_cmd::list_audio_files,
+            commands::audio_cmd::apply_silence_command,
             #[allow(deprecated)]
             commands::report_cmd::run_report_cmd,
             commands::report_cmd::generate_report,

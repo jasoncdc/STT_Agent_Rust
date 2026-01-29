@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useI18n } from "../i18n";
 
-export function ReportPage() {
+interface ReportPageProps {
+    isActive?: boolean;
+}
+
+export function ReportPage({ isActive }: ReportPageProps) {
     const { t, language } = useI18n();
     const [apiKey, setApiKey] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
@@ -21,10 +25,12 @@ export function ReportPage() {
                 directory: true,
                 multiple: false,
                 title: language === "zh" ? "選擇音檔資料夾" : "Select Audio Folder",
+                defaultPath: "02_split"
             });
 
             if (selected && typeof selected === "string") {
                 setFolderPath(selected);
+                localStorage.setItem("latest_report_folder", selected);
             }
         } catch (err) {
             setOutput(`${t.selectFileError}: ${err}`);
@@ -122,30 +128,49 @@ export function ReportPage() {
         }
     }
 
+    // Load default path from localStorage
+    useEffect(() => {
+        if (isActive) {
+            const stored = localStorage.getItem("latest_report_folder");
+            if (stored) {
+                setFolderPath(stored);
+            }
+        }
+    }, [isActive]);
+
+    useEffect(() => {
+        const stored = localStorage.getItem("latest_report_folder");
+        if (stored) {
+            setFolderPath(stored);
+        }
+    }, []);
+
     return (
         <div>
             <h2 className="page-title">📄 {t.reportTitle}</h2>
             <p className="page-description">{t.reportDescription}</p>
 
-            {/* 資料夾選擇 */}
+            {/* 資料夾選擇 - UI Adjusted: Button top-left of input */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
-                <label className="input-label">{t.audioFolder}</label>
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                    <input
-                        type="text"
-                        className="input"
-                        value={folderPath}
-                        placeholder={t.selectFolderPlaceholder}
-                        readOnly
-                        style={{ flex: 1, maxWidth: "500px" }}
-                    />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <label className="input-label" style={{ marginBottom: 0 }}>{t.audioFolder}</label>
                     <button
                         className="btn btn-secondary"
                         onClick={handleSelectFolder}
+                        style={{ padding: "4px 12px", fontSize: "0.9rem" }}
                     >
                         📁 {t.selectFolder}
                     </button>
                 </div>
+
+                <input
+                    type="text"
+                    className="input"
+                    value={folderPath}
+                    placeholder={t.selectFolderPlaceholder}
+                    readOnly
+                    style={{ width: "100%" }}
+                />
             </div>
 
             {/* API Key 輸入 */}

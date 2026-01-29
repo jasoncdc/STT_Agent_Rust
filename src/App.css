@@ -5,7 +5,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -88,8 +89,9 @@ html, body {
   height: 32px;
   flex-shrink: 0;
   position: relative;
-  z-index: 1000;
-  font-size: 14px; /* Fixed size, not affected by zoom */
+  z-index: 20000;
+  font-size: 14px;
+  /* Fixed size, not affected by zoom */
 }
 
 .menu-item-wrapper {
@@ -125,7 +127,7 @@ html, body {
   border-radius: 8px;
   min-width: 160px;
   box-shadow: 0 10px 40px var(--shadow);
-  z-index: 9999;
+  z-index: 20001;
   padding: 4px;
   margin-top: 2px;
 }
@@ -194,7 +196,7 @@ html, body {
   box-shadow: 0 10px 40px var(--shadow);
   display: none;
   padding: 4px;
-  z-index: 10000;
+  z-index: 20002;
 }
 
 .dropdown-submenu::before {
@@ -215,7 +217,7 @@ html, body {
   display: block;
 }
 
-.dropdown-submenu-wrapper:hover > .dropdown-item.has-submenu {
+.dropdown-submenu-wrapper:hover>.dropdown-item.has-submenu {
   background: var(--bg-hover);
 }
 
@@ -268,6 +270,7 @@ html, body {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -317,16 +320,98 @@ html, body {
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   position: relative;
-  z-index: 1;
+  z-index: 9999;
+  /* Ensure well above content */
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+/* Sidebar Toggle Strip */
+.sidebar-toggle-strip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  /* Width of the clickable strip area */
+  height: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  /* Highest priority */
+  transition: background 0.2s;
+  opacity: 0;
+  /* Hidden by default */
+}
+
+/* Show strip on hover or when collapsed (optional, user asked for specific look) */
+.sidebar:hover .sidebar-toggle-strip,
+.sidebar-toggle-strip:hover {
+  opacity: 1;
+}
+
+.sidebar.collapsed .sidebar-toggle-strip {
+  opacity: 1;
+  /* Always show in collapsed mode for easy access? Or keep hover behavior */
+}
+
+/* The arrow visual */
+.sidebar-toggle-arrow {
+  color: var(--text-secondary);
+  font-size: 10px;
+  background: var(--bg-secondary);
+  /* Match bg */
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  /* somewhat rounded */
+  width: 16px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: -8px;
+  /* Stick out slightly */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10001;
+  /* Ensure arrow is clickable */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-toggle-strip:hover .sidebar-toggle-arrow {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Adjust Nav Items for Collapsed State */
+.sidebar.collapsed .sidebar-nav {
+  align-items: center;
+}
+
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 10px;
+  width: 40px;
+  /* Force square-ish */
+  height: 40px;
+  margin: 0 auto;
 }
 
 .sidebar-title {
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 20px 16px;
+  padding: 0 20px 16px;
+  /* Adjusted padding since header div handles vertical */
   margin: 0;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar-nav {
@@ -639,7 +724,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ==================== Scrollbar Styling ==================== */

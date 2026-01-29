@@ -52,23 +52,23 @@ const ReportIcon = () => (
 
 function App() {
   const { language, setLanguage, t } = useI18n();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>("convert");
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
   const [showAbout, setShowAbout] = useState(false);
-  
+
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem("app-font-size");
     const initial = saved ? parseInt(saved, 10) : 16;
     return isNaN(initial) ? 16 : initial;
   });
-  
+
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("app-theme");
     return saved === "light" ? "light" : "dark";
   });
-  
-  
+
+
   const menuRef = useRef<HTMLDivElement>(null);
 
   const menuItems: { id: Tab; labelKey: keyof typeof t; icon: React.ReactNode }[] = [
@@ -112,7 +112,7 @@ function App() {
       await invoke("uninstall_app");
     } catch (error) {
       console.error("Uninstall failed:", error);
-      alert(language === "zh" 
+      alert(language === "zh"
         ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
         : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)");
     }
@@ -165,7 +165,7 @@ function App() {
 
       if (selected && typeof selected === "string") {
         await invoke("set_project_root_dir", { path: selected });
-        alert(language === "zh" 
+        alert(language === "zh"
           ? `已設定新的專案路徑: ${selected}`
           : `Project path set to: ${selected}`);
       }
@@ -177,15 +177,20 @@ function App() {
   };
 
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   return (
     <div className="app-wrapper">
+      {/* ... (About Dialog and Menu Bar remain unchanged, omitting for brevity in tool call if possible, but safer to keep structure?) 
+          Actually I need to replace the RETURN statement area mostly.
+      */}
       {/* About Dialog */}
       {showAbout && (
         <div className="modal-overlay" onClick={() => setShowAbout(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
-              <p><strong>{t.version}:</strong> 1.0.2</p>
+              <p><strong>{t.version}:</strong> 1.0.3</p>
               <p>{t.description}</p>
             </div>
             <button className="btn btn-primary" onClick={() => setShowAbout(false)}>
@@ -297,20 +302,45 @@ function App() {
 
       <div className="app-layout">
         {/* Sidebar */}
-        <aside className="sidebar">
-          <h2 className="sidebar-title">{t.appTitle}</h2>
+        <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+
+          {/* Header */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            minHeight: isSidebarCollapsed ? "10px" : "50px",
+            paddingLeft: isSidebarCollapsed ? "0" : "24px",
+            transition: "all 0.3s ease",
+            overflow: "hidden"
+          }}>
+            {/* Show Title only when Expanded */}
+            {!isSidebarCollapsed && <h2 className="sidebar-title" style={{ padding: 0 }}>{t.appTitle}</h2>}
+          </div>
+
           <nav className="sidebar-nav">
             {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`sidebar-item ${activeTab === item.id ? "active" : ""}`}
+                title={isSidebarCollapsed ? (t[item.labelKey] as string) : ""}
               >
                 <span className="sidebar-icon">{item.icon}</span>
-                <span className="sidebar-label">{t[item.labelKey] as string}</span>
+                {!isSidebarCollapsed && <span className="sidebar-label">{t[item.labelKey] as string}</span>}
               </button>
             ))}
           </nav>
+
+          {/* Vertical Toggle Strip */}
+          <div
+            className="sidebar-toggle-strip"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title={isSidebarCollapsed ? "Expand" : "Collapse"}
+          >
+            <span className="sidebar-toggle-arrow">
+              {isSidebarCollapsed ? "▶" : "◀"}
+            </span>
+          </div>
         </aside>
 
         {/* Main Content */}
@@ -327,7 +357,7 @@ function App() {
               <SilencePage />
             </div>
             <div style={{ display: activeTab === "report" ? "block" : "none" }}>
-              <ReportPage />
+              <ReportPage isActive={activeTab === "report"} />
             </div>
           </div>
         </main>
