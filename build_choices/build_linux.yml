@@ -48,29 +48,11 @@ jobs:
           wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
           tar xvf ffmpeg-release-amd64-static.tar.xz
           
-          # Explicitly find and copy ffmpeg
-          FFMPEG_BINARY=$(find . -name "ffmpeg" -type f | head -n 1)
-          
-          if [ -z "$FFMPEG_BINARY" ]; then
-            echo "Error: Could not find ffmpeg binary after extraction"
-            exit 1
-          fi
-          
-          echo "Found FFmpeg at: $FFMPEG_BINARY"
-          
-          # Copy to binaries folder (Standard Tauri location)
-          cp "$FFMPEG_BINARY" src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          # Copy to crate root (Backup location, sometimes needed)
-          cp "$FFMPEG_BINARY" src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
+          # Find the ffmpeg binary
+          find . -name "ffmpeg" -type f -exec cp {} src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu \;
           chmod +x src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
-          chmod +x src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
           
-          echo "Listing src-tauri/binaries:"
           ls -l src-tauri/binaries/
-          echo "Listing src-tauri root:"
-          ls -l src-tauri/
 
       - name: Install npm dependencies
         run: npm ci

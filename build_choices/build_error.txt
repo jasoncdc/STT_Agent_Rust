@@ -1,0 +1,23 @@
+   Compiling symphonia v0.5.5
+error: failed to run custom build command for `stt_agent_rust v1.0.3 (/home/runner/work/STT_Agent_Rust/STT_Agent_Rust/src-tauri)`
+
+Caused by:
+  process didn't exit successfully: `/home/runner/work/STT_Agent_Rust/STT_Agent_Rust/src-tauri/target/release/build/stt_agent_rust-dc3357c70a629093/build-script-build` (exit status: 1)
+  --- stdout
+  cargo:rerun-if-env-changed=TAURI_CONFIG
+  cargo:rustc-check-cfg=cfg(desktop)
+  cargo:rustc-cfg=desktop
+  cargo:rustc-check-cfg=cfg(mobile)
+  cargo:rerun-if-changed=/home/runner/work/STT_Agent_Rust/STT_Agent_Rust/src-tauri/tauri.conf.json
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=stt_agent_rust
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=com_jason
+  cargo:rustc-check-cfg=cfg(dev)
+  cargo:PERMISSION_FILES_PATH=/home/runner/work/STT_Agent_Rust/STT_Agent_Rust/src-tauri/target/x86_64-unknown-linux-gnu/release/build/stt_agent_rust-30e0ceb0887be6d9/out/app-manifest/__app__-permission-files
+  cargo:rerun-if-changed=capabilities
+  cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+  cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=x86_64-unknown-linux-gnu
+  resource path `stt-ffmpeg-x86_64-unknown-linux-gnu` doesn't exist
+warning: build failed, waiting for other jobs to finish...
+failed to build app: failed to build app
+       Error failed to build app: failed to build app
+Error: Process completed with exit code 1.

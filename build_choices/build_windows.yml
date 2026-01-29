@@ -1,0 +1,69 @@
+name: Build Windows App (Artifacts Only)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # 允許手動按按鈕觸發
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install FFmpeg
+        run: choco install ffmpeg -y
+
+      - name: Bundle FFmpeg Sidecar
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries
+          
+          # 尋找真正的 ffmpeg.exe (避開 Chocolatey Shim)
+          # Shim 通常只有幾 KB，真正的 ffmpeg 通常大於 50MB
+          $ffmpegSizeLimit = 10MB
+          $ffmpegReal = Get-ChildItem -Path C:\ProgramData\chocolatey\lib\ffmpeg -Recurse -Filter ffmpeg.exe | Where-Object { $_.Length -gt $ffmpegSizeLimit } | Sort-Object Length -Descending | Select-Object -First 1
+          
+          if ($null -eq $ffmpegReal) {
+              echo "Error: Could not find real ffmpeg.exe"
+              exit 1
+          }
+          
+          $ffmpegPath = $ffmpegReal.FullName
+          echo "Found real FFmpeg at: $ffmpegPath"
+          
+          Copy-Item $ffmpegPath -Destination src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          Copy-Item $ffmpegPath -Destination src-tauri/ffmpeg-x86_64-pc-windows-msvc.exe
+          
+          echo "Listing src-tauri binaries:"
+          ls src-tauri/binaries
+          echo "Listing src-tauri root:"
+          ls src-tauri
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # 這裡改回使用 npm run tauri build，單純編譯，不發布
+      - name: Build Tauri app
+        run: npm run tauri build
+
+      # 手動上傳編譯結果到 Artifacts
+      - name: Upload Windows Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          retention-days: 1   # 保留 1 天，幫你省空間
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            # src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/stt_agent_rust.exe
