@@ -112,9 +112,15 @@ function App() {
       await invoke("uninstall_app");
     } catch (error) {
       console.error("Uninstall failed:", error);
-      alert(language === "zh"
-        ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
-        : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)");
+      if (error === "PLATFORM_NOT_SUPPORTED") {
+        alert(language === "zh"
+          ? "Linux 系統請透過套件管理員移除：\n\n終端機執行：\nsudo apt remove stt-agent"
+          : "On Linux, please uninstall via terminal:\n\nsudo apt remove stt-agent");
+      } else {
+        alert(language === "zh"
+          ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
+          : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)");
+      }
     }
   };
 

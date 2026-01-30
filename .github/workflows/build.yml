@@ -1,21 +1,19 @@
-name: Build Linux App (Debian)
+name: Build Windows App (Artifacts Only)
 
 on:
   push:
     branches: [main, master]
-  workflow_dispatch:
+  workflow_dispatch: # 允許手動按按鈕觸發
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
+  build-windows:
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -23,65 +21,49 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-gnu
 
-      - name: Install Linux Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+      - name: Install FFmpeg
+        run: choco install ffmpeg -y
 
-      - name: Apply Linux Conflict Fix (Rename Sidecar)
-        # 這是關鍵步驟：在 Linux CI 環境中，動態將 ffmpeg 改名 stt-ffmpeg
-        # 這樣就不用改動原始碼，Windows 可以繼續用 ffmpeg，Linux 用 stt-ffmpeg 避免衝突
+      - name: Bundle FFmpeg Sidecar
         run: |
-          echo "Renaming sidecar references in code..."
-          sed -i 's/"ffmpeg"/"stt-ffmpeg"/g' src-tauri/tauri.conf.json
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/converter.rs
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/splitter.rs
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/silence.rs
-          echo "Code references updated."
-
-      - name: Setup FFmpeg (Linux)
-        run: |
-          mkdir -p src-tauri/binaries
-          wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-          tar xvf ffmpeg-release-amd64-static.tar.xz
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries
           
-          # Explicitly find and copy ffmpeg
-          FFMPEG_BINARY=$(find . -name "ffmpeg" -type f | head -n 1)
+          # 尋找真正的 ffmpeg.exe (避開 Chocolatey Shim)
+          # Shim 通常只有幾 KB，真正的 ffmpeg 通常大於 50MB
+          $ffmpegSizeLimit = 10MB
+          $ffmpegReal = Get-ChildItem -Path C:\ProgramData\chocolatey\lib\ffmpeg -Recurse -Filter ffmpeg.exe | Where-Object { $_.Length -gt $ffmpegSizeLimit } | Sort-Object Length -Descending | Select-Object -First 1
           
-          if [ -z "$FFMPEG_BINARY" ]; then
-            echo "Error: Could not find ffmpeg binary after extraction"
-            exit 1
-          fi
+          if ($null -eq $ffmpegReal) {
+              echo "Error: Could not find real ffmpeg.exe"
+              exit 1
+          }
           
-          echo "Found FFmpeg at: $FFMPEG_BINARY"
+          $ffmpegPath = $ffmpegReal.FullName
+          echo "Found real FFmpeg at: $ffmpegPath"
           
-          # Copy to binaries folder (Standard Tauri location)
-          cp "$FFMPEG_BINARY" src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
+          Copy-Item $ffmpegPath -Destination src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          Copy-Item $ffmpegPath -Destination src-tauri/ffmpeg-x86_64-pc-windows-msvc.exe
           
-          # Copy to crate root (Backup location, sometimes needed)
-          cp "$FFMPEG_BINARY" src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          chmod +x src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
-          chmod +x src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          echo "Listing src-tauri/binaries:"
-          ls -l src-tauri/binaries/
+          echo "Listing src-tauri binaries:"
+          ls src-tauri/binaries
           echo "Listing src-tauri root:"
-          ls -l src-tauri/
+          ls src-tauri
 
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Build Tauri App
-        run: npm run tauri build -- --target x86_64-unknown-linux-gnu
+      # 這裡改回使用 npm run tauri build，單純編譯，不發布
+      - name: Build Tauri app
+        run: npm run tauri build
 
-      - name: Upload Linux Installer
+      # 手動上傳編譯結果到 Artifacts
+      - name: Upload Windows Installer
         uses: actions/upload-artifact@v4
         with:
-          name: Linux-Installer
-          path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
-          if-no-files-found: warn
-          retention-days: 1
+          name: windows-installer
+          retention-days: 1   # 保留 1 天，幫你省空間
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            # src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/stt_agent_rust.exe
