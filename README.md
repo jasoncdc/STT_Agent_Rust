@@ -1,7 +1,128 @@
-# Tauri + React + Typescript
+# STT Agent (醫療音訊助理)
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+專為醫療專業人員設計的強大、安全且跨平台的桌面應用程式，用於高效處理、編輯和分析錄音檔案。基於 **Rust** 的穩健性與 **React** 的靈活性構建。
 
-## Recommended IDE Setup
+![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)
+![Tauri](https://img.shields.io/badge/built%20with-Tauri_v2-orange.svg)
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+---
+
+## 🚀 核心功能 (Features)
+
+1.  **全能轉檔 (Format Converter)**
+    *   支援將多種影音格式 (m4a, mp4, wav 等) 轉換為標準 **MP3**。
+    *   自動建立並整理標準化的專案資料夾結構。
+    *   核心採用業界標準 **FFmpeg** 技術。
+
+2.  **精準切割 (Smart Splitter)**
+    *   根據精確的時間戳記，將長錄音分割為多個片段。
+    *   能夠快速將單次錄音中的多個不同病患案例分離出來。
+
+3.  **隱私消音 (Silence Processing)**
+    *   **隱私優先**：一鍵手動將特定時間區段 (如病患姓名、個資) 進行靜音處理。
+    *   使用高品質靜音濾波器重新編碼，確保敏感資料徹底去識別化。
+
+4.  **智慧報告 (AI Reporting)**
+    *   深度整合 **Google Gemini Pro** 模型。
+    *   生成「逐字稿等級」的高解析度醫療紀錄報告。
+    *   透過 Google GenAI API 安全處理檔案上傳與報告生成。
+
+---
+
+## 📦 使用者指南：安裝教學 (Installation)
+
+### Windows 使用者
+1.  前往本專案的 **Actions** 頁籤。
+2.  點擊列表最上方最新的成功 **Workflow Run** (通常有綠色勾勾)。
+3.  滑到頁面最下方的 **Artifacts** 區塊，下載 `windows-installer`。
+4.  解壓縮下載的檔案，執行安裝程式 (`.exe`) 並依照指示安裝。
+5.  本程式已內建 FFmpeg，**無需安裝任何額外軟體**即可使用。
+
+### Linux 使用者 (Ubuntu/Debian)
+1.  前往本專案的 **Actions** 頁籤。
+2.  點擊列表最上方最新的成功 **Workflow Run**。
+3.  滑到頁面最下方的 **Artifacts** 區塊，下載 `Linux-Installer`。
+4.  解壓縮檔案，開啟終端機 (Terminal) 並使用 `apt` 安裝 (系統會自動處理相依性)：
+    ```bash
+    # 注意：Artifacts 通常是 zip 壓縮檔，請先解壓
+    unzip Linux-Installer.zip
+    
+    # 執行安裝 (請將檔名替換為實際下載的版本)
+    sudo apt install ./STT_Agent_1.0.4_amd64.deb
+    ```
+5.  安裝完成後，在應用程式選單搜尋 **"STT Agent"**，或在終端機輸入 `stt-agent` 即可啟動。
+
+---
+
+## 🛠 開發者指南：環境建置 (Getting Started)
+
+如果您希望從原始碼自行編譯，請參考以下步驟。
+
+### 1. 必備環境 (Prerequisites)
+*   **Node.js**: v20 或以上版本。
+*   **Rust**: 請安裝最新穩定版 (`rustup update`)。
+*   **FFmpeg**: 本地開發時，您的電腦必須已安裝 FFmpeg 並設定好環境變數 (PATH)。
+
+#### Linux 環境需求 (Ubuntu)
+您需要安裝 Tauri 和 WebKit 的系統依賴套件：
+```bash
+sudo apt update
+sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+```
+
+### 2. 專案初始化
+Clone 專案後，安裝相關依賴：
+
+```bash
+# 1. 安裝前端套件
+npm install
+
+# 2. 檢查 Rust 環境與依賴
+cd src-tauri
+cargo check
+cd ..
+```
+
+### 3. 啟動開發模式 (Development Mode)
+使用支援熱重載 (Hot-reloading) 的開發模式：
+
+```bash
+npm run tauri dev
+```
+*   **前端**: 運行於 `localhost:1420`。
+*   **後端**: 即時編譯 Rust 程式碼。
+*   **Sidecar**: 在開發模式下，會自動使用您系統內建的 `ffmpeg`。
+
+---
+
+## 🏗 打包與發布流程 (Build & Release)
+
+本專案採用「分離式建置策略」以確保最大的跨平台相容性。
+
+### 1. Windows 打包
+使用 `build_windows.yml` 腳本。它會自動綑綁專用的 Windows FFmpeg 執行檔。
+*   **指令**: 標準 Tauri build (或透過 GitHub Actions)。
+*   **產出**: `.exe` 安裝檔與 `.msi` 檔。
+
+### 2. Linux 打包
+使用 `build_linux.yml` 腳本 (Debian 專用)。它採用 **動態重新命名策略** 來避免與系統套件衝突。
+*   **機制**: 在 CI 建置過程中，自動將程式碼中的 `ffmpeg` 參照改名為 `stt-ffmpeg`。
+*   **產出**: `.deb` 安裝包 (符合 Debian 嚴格限制規範)。
+
+---
+
+## 📂 專案架構 (Project Structure)
+
+本專案採用 **模組化服務導向架構 (Modular Service-Oriented Architecture)**：
+
+*   **`src/`** (Frontend): React + TypeScript 使用者介面。
+*   **`src-tauri/src/commands/`** (Controller): 定義可供前端呼叫的 Tauri 指令層。
+*   **`src-tauri/src/services/`** (Business Logic): 核心功能實作區 (FFmpeg 邏輯、報告生成等)。
+*   **`src-tauri/src/models/`** (Data): 共用的資料結構定義。
+
+---
+
+## 📝 授權 (License)
+
+本專案為專有軟體 (Proprietary)，保留所有權利。
