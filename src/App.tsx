@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, ask } from "@tauri-apps/plugin-dialog";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import "./App.css";
 
 // Import modular pages
@@ -101,6 +103,35 @@ function App() {
     localStorage.setItem("app-theme", theme);
   }, [theme]);
 
+  // Auto-Update Check
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const update = await check();
+        if (update?.available) {
+          const yes = await ask(
+            language === "zh" 
+              ? `發現新版本 v${update.version}！\n\n更新內容：\n${update.body}`
+              : `Update to v${update.version} is available!\n\nRelease notes:\n${update.body}`,
+            {
+              title: language === "zh" ? '發現更新' : 'Update Available',
+              kind: 'info',
+              okLabel: language === "zh" ? '立即更新' : 'Update',
+              cancelLabel: language === "zh" ? '稍後' : 'Cancel'
+            }
+          );
+          if (yes) {
+            await update.downloadAndInstall();
+            await relaunch();
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check for updates:", error);
+      }
+    };
+    checkUpdate();
+  }, [language]);
+
 
 
   const handleExit = async () => {
@@ -196,7 +227,7 @@ function App() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
-              <p><strong>{t.version}:</strong> 1.0.4</p>
+              <p><strong>{t.version}:</strong> 1.0.5</p>
               <p>{t.description}</p>
             </div>
             <button className="btn btn-primary" onClick={() => setShowAbout(false)}>
