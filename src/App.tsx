@@ -227,7 +227,7 @@ function App() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
-              <p><strong>{t.version}:</strong> 1.0.6</p>
+              <p><strong>{t.version}:</strong> 1.0.7</p>
               <p>{t.description}</p>
             </div>
             <button className="btn btn-primary" onClick={() => setShowAbout(false)}>
