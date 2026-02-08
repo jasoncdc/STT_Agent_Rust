@@ -18,7 +18,16 @@ type Theme = "dark" | "light";
 
 // SVG Icons
 const ConvertIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="17 8 12 3 7 8" />
     <line x1="12" y1="3" x2="12" y2="15" />
@@ -26,7 +35,16 @@ const ConvertIcon = () => (
 );
 
 const SplitIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <line x1="12" y1="2" x2="12" y2="22" />
     <path d="M17 5H9a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8" />
     <path d="M7 12h10" />
@@ -34,7 +52,16 @@ const SplitIcon = () => (
 );
 
 const SilenceIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
     <line x1="23" y1="9" x2="17" y2="15" />
     <line x1="17" y1="9" x2="23" y2="15" />
@@ -42,7 +69,16 @@ const SilenceIcon = () => (
 );
 
 const ReportIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <polyline points="14 2 14 8 20 8" />
     <line x1="16" y1="13" x2="8" y2="13" />
@@ -50,7 +86,6 @@ const ReportIcon = () => (
     <polyline points="10 9 9 9 8 9" />
   </svg>
 );
-
 
 function App() {
   const { language, setLanguage, t } = useI18n();
@@ -70,10 +105,13 @@ function App() {
     return saved === "light" ? "light" : "dark";
   });
 
-
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const menuItems: { id: Tab; labelKey: keyof typeof t; icon: React.ReactNode }[] = [
+  const menuItems: {
+    id: Tab;
+    labelKey: keyof typeof t;
+    icon: React.ReactNode;
+  }[] = [
     { id: "convert", labelKey: "convert", icon: <ConvertIcon /> },
     { id: "split", labelKey: "split", icon: <SplitIcon /> },
     { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
@@ -110,15 +148,15 @@ function App() {
         const update = await check();
         if (update?.available) {
           const yes = await ask(
-            language === "zh" 
+            language === "zh"
               ? `發現新版本 v${update.version}！\n\n更新內容：\n${update.body}`
               : `Update to v${update.version} is available!\n\nRelease notes:\n${update.body}`,
             {
-              title: language === "zh" ? '發現更新' : 'Update Available',
-              kind: 'info',
-              okLabel: language === "zh" ? '立即更新' : 'Update',
-              cancelLabel: language === "zh" ? '稍後' : 'Cancel'
-            }
+              title: language === "zh" ? "發現更新" : "Update Available",
+              kind: "info",
+              okLabel: language === "zh" ? "立即更新" : "Update",
+              cancelLabel: language === "zh" ? "稍後" : "Cancel",
+            },
           );
           if (yes) {
             await update.downloadAndInstall();
@@ -132,8 +170,6 @@ function App() {
     checkUpdate();
   }, [language]);
 
-
-
   const handleExit = async () => {
     await invoke("exit_app");
   };
@@ -144,13 +180,17 @@ function App() {
     } catch (error) {
       console.error("Uninstall failed:", error);
       if (error === "PLATFORM_NOT_SUPPORTED") {
-        alert(language === "zh"
-          ? "Linux 系統請透過套件管理員移除：\n\n終端機執行：\nsudo apt remove stt-agent"
-          : "On Linux, please uninstall via terminal:\n\nsudo apt remove stt-agent");
+        alert(
+          language === "zh"
+            ? "Linux 系統請透過套件管理員移除：\n\n終端機執行：\nsudo apt remove stt-agent"
+            : "On Linux, please uninstall via terminal:\n\nsudo apt remove stt-agent",
+        );
       } else {
-        alert(language === "zh"
-          ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
-          : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)");
+        alert(
+          language === "zh"
+            ? "無法啟動解除安裝程式 (可能因為是在開發模式下運行，或者找不到 uninstall.exe)"
+            : "Cannot start uninstaller (possibly running in dev mode or uninstall.exe not found)",
+        );
       }
     }
   };
@@ -197,14 +237,19 @@ function App() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: language === "zh" ? "選擇新的專案預設路徑" : "Select new project path",
+        title:
+          language === "zh"
+            ? "選擇新的專案預設路徑"
+            : "Select new project path",
       });
 
       if (selected && typeof selected === "string") {
         await invoke("set_project_root_dir", { path: selected });
-        alert(language === "zh"
-          ? `已設定新的專案路徑: ${selected}`
-          : `Project path set to: ${selected}`);
+        alert(
+          language === "zh"
+            ? `已設定新的專案路徑: ${selected}`
+            : `Project path set to: ${selected}`,
+        );
       }
     } catch (error) {
       console.error("無法設定路徑:", error);
@@ -212,7 +257,6 @@ function App() {
     }
     setOpenMenu(null);
   };
-
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -227,10 +271,15 @@ function App() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
-              <p><strong>{t.version}:</strong> 1.0.8</p>
+              <p>
+                <strong>{t.version}:</strong> 1.0.9
+              </p>
               <p>{t.description}</p>
             </div>
-            <button className="btn btn-primary" onClick={() => setShowAbout(false)}>
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowAbout(false)}
+            >
               {t.close}
             </button>
           </div>
@@ -248,7 +297,6 @@ function App() {
           </button>
           {openMenu === "file" && (
             <div className="dropdown-menu">
-
               <button className="dropdown-item" onClick={handleSetProjectPath}>
                 {t.setProjectPath}
               </button>
@@ -340,18 +388,23 @@ function App() {
       <div className="app-layout">
         {/* Sidebar */}
         <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-
           {/* Header */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            minHeight: isSidebarCollapsed ? "10px" : "50px",
-            paddingLeft: isSidebarCollapsed ? "0" : "24px",
-            transition: "all 0.3s ease",
-            overflow: "hidden"
-          }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              minHeight: isSidebarCollapsed ? "10px" : "50px",
+              paddingLeft: isSidebarCollapsed ? "0" : "24px",
+              transition: "all 0.3s ease",
+              overflow: "hidden",
+            }}
+          >
             {/* Show Title only when Expanded */}
-            {!isSidebarCollapsed && <h2 className="sidebar-title" style={{ padding: 0 }}>{t.appTitle}</h2>}
+            {!isSidebarCollapsed && (
+              <h2 className="sidebar-title" style={{ padding: 0 }}>
+                {t.appTitle}
+              </h2>
+            )}
           </div>
 
           <nav className="sidebar-nav">
@@ -363,7 +416,11 @@ function App() {
                 title={isSidebarCollapsed ? (t[item.labelKey] as string) : ""}
               >
                 <span className="sidebar-icon">{item.icon}</span>
-                {!isSidebarCollapsed && <span className="sidebar-label">{t[item.labelKey] as string}</span>}
+                {!isSidebarCollapsed && (
+                  <span className="sidebar-label">
+                    {t[item.labelKey] as string}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -384,13 +441,17 @@ function App() {
         <main className="main-content">
           {/* Content Area - All components stay mounted, hidden with CSS for state persistence */}
           <div className="content-area">
-            <div style={{ display: activeTab === "convert" ? "block" : "none" }}>
+            <div
+              style={{ display: activeTab === "convert" ? "block" : "none" }}
+            >
               <ConvertPage />
             </div>
             <div style={{ display: activeTab === "split" ? "block" : "none" }}>
               <SplitPage />
             </div>
-            <div style={{ display: activeTab === "silence" ? "block" : "none" }}>
+            <div
+              style={{ display: activeTab === "silence" ? "block" : "none" }}
+            >
               <SilencePage />
             </div>
             <div style={{ display: activeTab === "report" ? "block" : "none" }}>
