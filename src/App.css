@@ -310,7 +310,7 @@ body {
 
 /* ==================== Sidebar ==================== */
 .sidebar {
-  width: 220px;
+  width: 240px;
   background: var(--bg-secondary);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -412,6 +412,7 @@ body {
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-nav {
@@ -442,8 +443,23 @@ body {
 }
 
 .sidebar-item.active {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--accent);
+  position: relative;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.sidebar-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 10px var(--accent);
 }
 
 .sidebar-item.active .sidebar-icon {
@@ -484,6 +500,21 @@ body {
   box-shadow: 0 4px 24px var(--shadow);
   position: relative;
   z-index: 1;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-area > div[style*="block"] {
+  animation: fadeInUp 0.3s ease-out;
 }
 
 /* Audio Player Section */
@@ -542,14 +573,15 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-active));
   color: #ffffff;
+  box-shadow: 0 4px 15px rgba(10, 132, 255, 0.25);
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+  box-shadow: 0 6px 20px rgba(10, 132, 255, 0.4);
 }
 
 .btn-primary:active {
@@ -763,8 +795,397 @@ h1 {
   text-align: center;
 }
 
-/* Reset default button/input styles when using new classes */
-input.input,
-button.btn {
-  box-shadow: none;
+/* ==================== Empty State & Visual Enhancements ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background: var(--bg-tertiary); /* Optional: distinct background for area */
+  border-radius: 12px;
+  border: 1px dashed var(--border-strong); /* Dashed border for "drop zone" feel */
+  min-height: 300px;
+  transition: all 0.3s ease;
+}
+
+.empty-state:hover {
+  border-color: var(--accent);
+  background: rgba(10, 132, 255, 0.05);
+}
+
+.hero-icon-wrapper {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(10, 132, 255, 0.1);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(10, 132, 255, 0.1);
+}
+
+.empty-state-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.btn-large {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+/* File List Enhancements */
+.file-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+
+.file-list-item:hover {
+  background: var(--bg-hover);
+}
+
+.file-icon {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.file-name {
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+/* Utility Utilities */
+.display-flex { display: flex; }
+.gap-2 { gap: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mt-4 { margin-top: 1rem; }
+.btn-block { width: 100%; justify-content: center; }
+/* ==================== Audio Player Enhancements ==================== */
+.audio-player-wrapper {
+  margin-bottom: 24px;
+}
+
+/* Audio Empty State */
+.audio-empty-state {
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.audio-icon-circle {
+  width: 80px;
+  height: 80px;
+  background: rgba(10, 132, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 30px rgba(10, 132, 255, 0.1);
+}
+
+/* Active Player Controls */
+.audio-controls-container {
+  background: #1e1e2e;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+[data-theme="light"] .audio-controls-container {
+  background: #ffffff;
+  border-color: var(--border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+}
+
+.player-inner-box {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+[data-theme="light"] .player-inner-box {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.player-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.track-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.track-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.player-main-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.play-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+}
+
+.play-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(10, 132, 255, 0.4);
+}
+
+.play-btn svg {
+  pointer-events: none;
+}
+
+
+.seek-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(0,0,0,0.2);
+  padding: 8px 16px;
+  border-radius: 24px;
+}
+
+[data-theme="light"] .seek-container {
+  background: rgba(235, 237, 240, 1);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.time-display {
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+  min-width: 90px;
+  text-align: center;
+}
+
+.time-display.total {
+  color: var(--text-tertiary);
+}
+
+/* Custom Range Slider */
+.custom-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+.custom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  transition: transform 0.1s;
+}
+
+.custom-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.custom-range::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: transparent;
+  border-radius: 2px;
+}
+
+/* ==================== Segment Table Enhancements ==================== */
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-secondary);
+}
+
+.custom-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.custom-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.custom-table tr:last-child td {
+  border-bottom: none;
+}
+
+.table-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.table-input:hover {
+  background: var(--bg-hover);
+}
+
+.table-input:focus {
+  background: var(--bg-primary);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.font-mono {
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.delete-btn:hover {
+  background: rgba(255, 69, 58, 0.1);
+  color: var(--danger);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.justify-between { justify-content: space-between; }
+.align-center { align-items: center; }
+.mt-3 { margin-top: 0.75rem; }
+
+/* Custom Select for Dark Theme */
+.custom-file-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  padding-right: 40px; /* Space for arrow */
+  font-size: 1rem;
+  width: 100%;
+  max-width: 400px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.custom-file-select:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.custom-file-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+}
+
+.custom-file-select option {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+/* Light Theme Override for Custom Select Arrow */
+[data-theme="light"] .custom-file-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-color: var(--bg-primary); /* Ensure background is light */
+  border-color: var(--border-strong);
 }

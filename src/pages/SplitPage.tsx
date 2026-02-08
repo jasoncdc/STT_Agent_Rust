@@ -311,215 +311,247 @@ export function SplitPage() {
         }
     }, [output]);
 
+    // Icons
+    const AudioIcon = () => (
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{opacity: 0.8}}>
+            <path d="M9 18V5l12-2v13"></path>
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="16" r="3"></circle>
+        </svg>
+    );
+    const PlayIcon = () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M8 5v14l11-7z"></path>
+        </svg>
+    );
+
+    const PauseIcon = () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+        </svg>
+    );
+
     return (
-        <div>
-            <h2 className="page-title">{t.splitTitle}</h2>
-            <p className="page-description">{t.splitDescription}</p>
+        <div className="page-container">
+            <header className="page-header">
+                <h2 className="page-title">{t.splitTitle}</h2>
+                <p className="page-description">{t.splitDescription}</p>
+            </header>
 
             {/* Audio Player Section */}
-            <div className="audio-player-section">
-                <h3>🎵 {t.audioPlayer}</h3>
-
-                {/* Load Button */}
-                <div style={{ marginBottom: "16px" }}>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={handleLoadTrack}
-                        disabled={loading}
-                        style={{ marginRight: "10px" }}
-                    >
-                        📂 {t.loadAudio}
-                    </button>
-
-                    {isLoaded && (
-                        <button
-                            className="btn btn-primary"
-                            onClick={handlePlayPause}
-                            disabled={loading}
-                        >
-                            {isPlaying ? `⏸️ ${t.pause}` : `▶️ ${t.play}`}
+            {/* Audio Player Header Section */}
+            {/* Audio Player Section */}
+            
+            {/* Audio Player Wrapper */}
+            <div className={`audio-player-wrapper ${isLoaded ? 'active' : 'empty'}`}>
+                {!isLoaded ? (
+                    // Empty State
+                    <div className="audio-empty-state">
+                        <h3 style={{ marginBottom: '16px' }}>🎵 {t.audioPlayer}</h3>
+                        <div className="audio-icon-circle">
+                            <AudioIcon />
+                        </div>
+                        <p className="subtext">{t.errorLoadAudio}</p>
+                        <button className="btn btn-primary mt-3" onClick={handleLoadTrack} disabled={loading}>
+                             📂 {t.loadAudio}
                         </button>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    // Active Player
+                    <div className="audio-controls-container">
+                        {/* Header: Title + Button */}
+                        <div style={{ marginBottom: '16px' }}>
+                             <h3 style={{ margin: '0 0 12px 0' }}>🎵 {t.audioPlayer}</h3>
+                             <button className="btn btn-secondary" onClick={handleLoadTrack}>
+                                📂 {t.changeFolder || t.loadAudio}
+                            </button>
+                        </div>
 
-                {/* Seek Slider */}
-                {isLoaded && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <span style={{
-                            fontSize: "0.9rem",
-                            fontFamily: "monospace",
-                            minWidth: "70px",
-                            color: "var(--text-primary)"
-                        }}>
-                            {formatTime(currentTime)}
-                        </span>
+                        {/* Inner Player Box */}
+                        <div className="player-inner-box">
+                            <div className="player-top-row">
+                                <div className="track-info">
+                                    <span className="icon">🎵</span>
+                                    <span className="track-name">{getFileName(audioFilePath)}</span>
+                                </div>
+                            </div>
 
-                        <input
-                            type="range"
-                            min={0}
-                            max={duration || 100}
-                            step={0.1}
-                            value={currentTime}
-                            onChange={(e) => {
-                                setIsSeeking(true);
-                                setCurrentTime(parseFloat(e.target.value));
-                            }}
-                            onMouseUp={(e) => {
-                                const target = e.target as HTMLInputElement;
-                                handleSeek(parseFloat(target.value));
-                                setIsSeeking(false);
-                                target.blur(); // Restore keyboard controls
-                            }}
-                            onTouchEnd={(e) => {
-                                const target = e.target as HTMLInputElement;
-                                handleSeek(parseFloat(target.value));
-                                setIsSeeking(false);
-                                target.blur(); // Restore keyboard controls
-                            }}
-                            style={{
-                                flex: 1,
-                                height: "8px",
-                                cursor: "pointer",
-                                accentColor: "var(--accent)"
-                            }}
-                        />
-
-                        <span style={{
-                            fontSize: "0.9rem",
-                            fontFamily: "monospace",
-                            minWidth: "70px",
-                            textAlign: "right",
-                            color: "var(--text-secondary)"
-                        }}>
-                            {formatTime(duration)}
-                        </span>
+                            <div className="player-main-row">
+                                <button className="play-btn" onClick={handlePlayPause}>
+                                    {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                                </button>
+                                
+                                <div className="seek-container">
+                                    <span className="time-display">{formatTime(currentTime)}</span>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={duration || 100}
+                                        step={0.1}
+                                        value={currentTime}
+                                        onChange={(e) => {
+                                            setIsSeeking(true);
+                                            setCurrentTime(parseFloat(e.target.value));
+                                        }}
+                                        onMouseUp={(e) => {
+                                            const target = e.target as HTMLInputElement;
+                                            handleSeek(parseFloat(target.value));
+                                            setIsSeeking(false);
+                                            target.blur();
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            const target = e.target as HTMLInputElement;
+                                            handleSeek(parseFloat(target.value));
+                                            setIsSeeking(false);
+                                            target.blur();
+                                        }}
+                                        className="custom-range"
+                                        style={{
+                                            background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
+                                        }}
+                                    />
+                                    <span className="time-display total">{formatTime(duration)}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
+
             {/* Segment Table Section */}
-            <div className="segment-table-section" style={{ marginTop: "24px", marginBottom: "24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                    <h3 style={{ margin: 0 }}>📋 {t.segmentList}</h3>
-                    <button
-                        onClick={addSegment}
-                        className="btn btn-secondary"
-                        style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px" }}
-                    >
+            <div className="segment-section mt-4 fade-in-up">
+                <div className="section-header display-flex justify-between align-center mb-3">
+                    <h3>📋 {t.segmentList}</h3>
+                    <button onClick={addSegment} className="btn btn-secondary btn-sm">
                         ➕ {t.addSegment}
                     </button>
                 </div>
 
-                <table style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    backgroundColor: "var(--bg-secondary, #1e1e1e)",
-                    borderRadius: "8px",
-                    overflow: "hidden"
-                }}>
-                    <thead>
-                        <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
-                            <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>{t.segmentName}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.startTime}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.endTime}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>{t.action}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {segments.map((segment) => (
-                            <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
-                                <td style={{ padding: "8px 4px 8px 12px", width: "200px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.name}
-                                        onChange={(e) => updateSegment(segment.id, "name", e.target.value)}
-                                        placeholder={t.exampleName}
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.name ? "var(--text-primary, #fff)" : "#888"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.startTime}
-                                        onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
-                                        placeholder="00:00:00"
-                                        style={{
-                                            width: "110px",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.startTime ? "var(--text-primary, #fff)" : "#888",
-                                            textAlign: "center",
-                                            fontFamily: "monospace"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.endTime}
-                                        onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
-                                        placeholder="00:00:00"
-                                        style={{
-                                            width: "110px",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.endTime ? "var(--text-primary, #fff)" : "#888",
-                                            textAlign: "center",
-                                            fontFamily: "monospace"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                                    <button
-                                        onClick={() => deleteSegment(segment.id)}
-                                        disabled={segments.length <= 1}
-                                        style={{
-                                            padding: "8px 16px",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            backgroundColor: segments.length <= 1 ? "#555" : "#e74c3c",
-                                            color: "#fff",
-                                            cursor: segments.length <= 1 ? "not-allowed" : "pointer",
-                                            fontWeight: "bold",
-                                            fontSize: "14px",
-                                            transition: "all 0.2s ease"
-                                        }}
-                                        title={segments.length <= 1 ? t.needAtLeastOneSegment : t.deleteSegment}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
+                <div className="table-container" style={{ marginTop: '12px' }}>
+                    <table style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        backgroundColor: "var(--bg-secondary, #1e1e1e)",
+                        borderRadius: "8px",
+                        overflow: "hidden"
+                    }}>
+                        <thead>
+                            <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
+                                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "300px" }}>{t.segmentName}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.startTime}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.endTime}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>{t.action}</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {segments.map((segment) => (
+                                <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
+                                    <td style={{ padding: "8px 4px 8px 12px", width: "300px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.name}
+                                            onChange={(e) => updateSegment(segment.id, "name", e.target.value)}
+                                            placeholder={t.exampleName}
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.name ? "var(--text-primary, #fff)" : "#888"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 4px", textAlign: "center", width: "160px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.startTime}
+                                            onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
+                                            placeholder="00:00:00"
+                                            style={{
+                                                width: "140px",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.startTime ? "var(--text-primary, #fff)" : "#888",
+                                                textAlign: "center",
+                                                fontFamily: "monospace"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 4px", textAlign: "center", width: "160px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.endTime}
+                                            onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
+                                            placeholder="00:00:00"
+                                            style={{
+                                                width: "140px",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.endTime ? "var(--text-primary, #fff)" : "#888",
+                                                textAlign: "center",
+                                                fontFamily: "monospace"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 12px", textAlign: "center", width: "80px" }}>
+                                        <button
+                                            onClick={() => deleteSegment(segment.id)}
+                                            disabled={segments.length <= 1}
+                                            style={{
+                                                padding: "8px 16px",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                backgroundColor: segments.length <= 1 ? "#555" : "#e74c3c",
+                                                color: "#fff",
+                                                cursor: segments.length <= 1 ? "not-allowed" : "pointer",
+                                                fontWeight: "bold",
+                                                fontSize: "14px",
+                                                transition: "all 0.2s ease",
+                                                margin: '0 auto',
+                                                display: 'block'
+                                            }}
+                                            title={t.deleteSegment}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-            </div>
-
-            {/* Split Controls */}
-            <div className="btn-group">
-                <button className="btn btn-primary" onClick={runSplit} disabled={loading}>
-                    {loading && <span className="loading-spinner"></span>}
-                    {loading ? t.splitting : t.runSplit}
-                </button>
+                {/* Split Controls */}
+                <div className="action-footer mt-4">
+                    <button 
+                        className="btn btn-primary btn-large" 
+                        onClick={runSplit} 
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <span className="loading-spinner"></span>
+                        ) : null}
+                        <span>
+                            {loading ? t.splitting : t.runSplit}
+                        </span>
+                    </button>
+                </div>
             </div>
 
             {output && (
-                <div className={`output-box ${output.includes(t.error) ? "error" : ""}`}>
+                <div className={`output-box mt-4 fade-in-up ${output.includes(t.error) ? "error" : ""}`}>
                     {output}
                 </div>
             )}
         </div>
     );
 }
+
+// Extract filename helper if not already present in scope or ensure it's used correctly
+const getFileName = (path: string) => path.split(/[/\\]/).pop() || path;

@@ -339,71 +339,89 @@ export function SilencePage() {
             <h2 className="page-title">{t.silenceTitle}</h2>
             <p className="page-description">{t.silenceDescription}</p>
 
-            {/* Folder Selection Section */}
-            <div className="audio-player-section" style={{ marginBottom: "20px" }}>
-                <h3>{t.silenceAudioPlayer}</h3>
-                <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-                    <button className="btn btn-secondary" onClick={handleSelectFolder}>
-                        {folderPath ? t.changeFolder : t.selectAudioFolder}
-                    </button>
-                    {folderPath && (
-                        <select
-                            className="input-field"
-                            style={{ flex: 1 }}
-                            value={selectedFile}
-                            onChange={(e) => handleFileChange(e.target.value)}
-                        >
-                            {fileList.map((f) => (
-                                <option key={f} value={f}>{f}</option>
-                            ))}
-                        </select>
+            {/* Audio Player Section */}
+            <div className="audio-player-wrapper">
+                <div className="audio-controls-container">
+                    {/* Header: Title + Button + Dropdown */}
+                    <div style={{ marginBottom: '16px' }}>
+                        <h3 style={{ margin: '0 0 12px 0' }}>🎵 {t.silenceAudioPlayer}</h3>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                            <button className="btn btn-secondary" onClick={handleSelectFolder}>
+                                📂 {folderPath ? t.changeFolder : t.selectAudioFolder}
+                            </button>
+                            {folderPath && (
+                                <select
+                                    className="custom-file-select"
+                                    style={{ flex: 1 }}
+                                    value={selectedFile}
+                                    onChange={(e) => handleFileChange(e.target.value)}
+                                >
+                                    {fileList.map((f) => (
+                                        <option key={f} value={f}>{f}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Inner Player Box */}
+                    {isLoaded && (
+                        <div className="player-inner-box">
+                            <div className="player-top-row">
+                                <div className="track-info">
+                                    <span className="icon">🎵</span>
+                                    <span className="track-name">{selectedFile}</span>
+                                </div>
+                            </div>
+
+                            <div className="player-main-row">
+                                <button className="play-btn" onClick={handlePlayPause}>
+                                    {isPlaying ? (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                                        </svg>
+                                    ) : (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                            <path d="M8 5v14l11-7z"></path>
+                                        </svg>
+                                    )}
+                                </button>
+                                
+                                <div className="seek-container">
+                                    <span className="time-display">{formatTime(currentTime)}</span>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={duration || 100}
+                                        step={0.1}
+                                        value={currentTime}
+                                        onChange={(e) => {
+                                            setIsSeeking(true);
+                                            setCurrentTime(parseFloat(e.target.value));
+                                        }}
+                                        onMouseUp={(e) => {
+                                            const target = e.target as HTMLInputElement;
+                                            handleSeek(parseFloat(target.value));
+                                            setIsSeeking(false);
+                                            target.blur();
+                                        }}
+                                        onTouchEnd={(e) => {
+                                            const target = e.target as HTMLInputElement;
+                                            handleSeek(parseFloat(target.value));
+                                            setIsSeeking(false);
+                                            target.blur();
+                                        }}
+                                        className="custom-range"
+                                        style={{
+                                            background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
+                                        }}
+                                    />
+                                    <span className="time-display total">{formatTime(duration)}</span>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
-
-                {/* Audio Player */}
-                {isLoaded && (
-                    <>
-                        <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handlePlayPause}
-                                disabled={loading}
-                            >
-                                {isPlaying ? `⏸️ ${t.pause}` : `▶️ ${t.play}`}
-                            </button>
-                            <span style={{ fontWeight: "bold" }}>{selectedFile}</span>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span className="time-display">{formatTime(currentTime)}</span>
-                            <input
-                                type="range"
-                                min={0}
-                                max={duration || 100}
-                                step={0.1}
-                                value={currentTime}
-                                onChange={(e) => {
-                                    setIsSeeking(true);
-                                    setCurrentTime(parseFloat(e.target.value));
-                                }}
-                                onMouseUp={(e) => {
-                                    const target = e.target as HTMLInputElement;
-                                    handleSeek(parseFloat(target.value));
-                                    setIsSeeking(false);
-                                    target.blur();
-                                }}
-                                onTouchEnd={(e) => {
-                                    const target = e.target as HTMLInputElement;
-                                    handleSeek(parseFloat(target.value));
-                                    setIsSeeking(false);
-                                    target.blur();
-                                }}
-                                style={{ flex: 1, cursor: "pointer", accentColor: "var(--accent)" }}
-                            />
-                            <span className="time-display">{formatTime(duration)}</span>
-                        </div>
-                    </>
-                )}
             </div>
 
             {/* Segment Table Section */}
@@ -419,13 +437,14 @@ export function SilencePage() {
                     </button>
                 </div>
 
-                <table style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    backgroundColor: "var(--bg-secondary, #1e1e1e)",
-                    borderRadius: "8px",
-                    overflow: "hidden"
-                }}>
+                <div className="table-container" style={{ marginTop: '12px' }}>
+                    <table style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        backgroundColor: "var(--bg-secondary, #1e1e1e)",
+                        borderRadius: "8px",
+                        overflow: "hidden"
+                    }}>
                     <thead>
                         <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
                             <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>{t.segmentNote}</th>
@@ -513,6 +532,7 @@ export function SilencePage() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             <div className="btn-group">

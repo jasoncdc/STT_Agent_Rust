@@ -467,8 +467,13 @@ fn run_decoder_loop(
             Err(symphonia::core::errors::Error::IoError(ref e))
                 if e.kind() == std::io::ErrorKind::UnexpectedEof =>
             {
-                // End of stream
-                break;
+                // End of stream - Do NOT break, otherwise we can't seek backwards
+                // Just sleep and wait for a seek or stop signal
+                if !shared_state.is_paused.load(Ordering::Relaxed) {
+                     shared_state.is_paused.store(true, Ordering::Relaxed);
+                }
+                thread::sleep(std::time::Duration::from_millis(100));
+                continue;
             }
             Err(e) => {
                 eprintln!("Packet read error: {}", e);

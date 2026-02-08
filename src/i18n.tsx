@@ -78,8 +78,8 @@ export const translations = {
     // SilencePage
     silenceTitle: "消音處理",
     silenceDescription: "針對敏感片段做消音處理",
-    silenceAudioPlayer: "🎵 音訊播放器", // New Key
-    selectAudioFolder: "📂選擇資料夾", // New Key
+    silenceAudioPlayer: "音訊播放器", // New Key
+    selectAudioFolder: "選擇資料夾", // New Key
     changeFolder: "更改資料夾", // New Key
     runDetection: "執行消音處理",
     detecting: "處理中...",
@@ -131,7 +131,7 @@ export const translations = {
     chinese: "中文",
     english: "English",
     // Sidebar
-    appTitle: "Meeting Transcription Assistant",
+    appTitle: "STT Assistant",
     convert: "Convert",
     split: "Split",
     silence: "Silence",
@@ -183,8 +183,8 @@ export const translations = {
     // SilencePage
     silenceTitle: "Silence Detection",
     silenceDescription: "Analyze and process silent sections in audio files.",
-    silenceAudioPlayer: "🎵 Audio Player",
-    selectAudioFolder: "📂 Select Folder",
+    silenceAudioPlayer: "Audio Player",
+    selectAudioFolder: "Select Folder",
     changeFolder: "Change Folder",
     runDetection: "Run Silence Processor",
     detecting: "Processing...",
