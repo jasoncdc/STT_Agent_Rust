@@ -257,7 +257,13 @@ function App() {
     setOpenMenu(null);
   };
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("sidebar-collapsed") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", isSidebarCollapsed.toString());
+  }, [isSidebarCollapsed]);
 
   return (
     <div className="app-wrapper">
@@ -271,7 +277,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.2
+                <strong>{t.version}:</strong> 1.1.3
               </p>
               <p>{t.description}</p>
             </div>

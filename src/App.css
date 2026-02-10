@@ -969,9 +969,9 @@ h1 {
 }
 
 .track-info {
-  justify-content: center;
+  display: flex;
+  gap: 8px;
   align-items: center;
-  height: 200px;
   color: var(--text-tertiary);
   font-size: 0.9rem;
 }
