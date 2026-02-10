@@ -201,7 +201,7 @@ impl ReportAgent {
         prompt: &str,
     ) -> Result<String, String> {
         // 取得音檔長度
-        let duration = self.get_audio_duration(file_path).await?;
+        let duration = Self::get_audio_duration_sync(file_path)?;
         let duration_min = duration / 60.0;
 
         // 閾值：24 分鐘
@@ -269,32 +269,54 @@ impl ReportAgent {
         }
     }
 
-    /// 取得音檔長度（秒）
-    async fn get_audio_duration(&self, file_path: &str) -> Result<f64, String> {
-        // 使用 ffprobe 取得音檔長度
-        let output = tokio::process::Command::new("ffprobe")
-            .args([
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                file_path,
-            ])
-            .output()
-            .await
-            .map_err(|e| format!("無法執行 ffprobe: {}", e))?;
+    /// 取得音檔長度（秒）— 使用 symphonia 原生解析，不依賴外部程式
+    fn get_audio_duration_sync(file_path: &str) -> Result<f64, String> {
+        use symphonia::core::formats::FormatOptions;
+        use symphonia::core::io::MediaSourceStream;
+        use symphonia::core::meta::MetadataOptions;
+        use symphonia::core::probe::Hint;
 
-        if !output.status.success() {
-            return Err("ffprobe 執行失敗".to_string());
+        let file = std::fs::File::open(file_path).map_err(|e| format!("無法開啟音檔: {}", e))?;
+        let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+        let mut hint = Hint::new();
+        if let Some(ext) = std::path::Path::new(file_path)
+            .extension()
+            .and_then(|e| e.to_str())
+        {
+            hint.with_extension(ext);
         }
 
-        let duration_str = String::from_utf8_lossy(&output.stdout);
-        duration_str
-            .trim()
-            .parse::<f64>()
-            .map_err(|_| "無法解析音檔長度".to_string())
+        let probed = symphonia::default::get_probe()
+            .format(
+                &hint,
+                mss,
+                &FormatOptions::default(),
+                &MetadataOptions::default(),
+            )
+            .map_err(|e| format!("無法解析音檔格式: {}", e))?;
+
+        let reader = probed.format;
+
+        // 嘗試從預設 track 取得時長
+        if let Some(track) = reader.default_track() {
+            if let Some(n_frames) = track.codec_params.n_frames {
+                if let Some(tb) = track.codec_params.time_base {
+                    let time = tb.calc_time(n_frames);
+                    return Ok(time.seconds as f64 + time.frac);
+                }
+            }
+            // 備用：嘗試從 sample_rate 和 n_frames 推算
+            if let (Some(n_frames), Some(sample_rate)) =
+                (track.codec_params.n_frames, track.codec_params.sample_rate)
+            {
+                if sample_rate > 0 {
+                    return Ok(n_frames as f64 / sample_rate as f64);
+                }
+            }
+        }
+
+        Err("無法從音檔取得時長資訊".to_string())
     }
 
     /// 使用 FFmpeg 切割音檔片段
