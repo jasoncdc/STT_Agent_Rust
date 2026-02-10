@@ -1,21 +1,26 @@
-name: Build Linux App (Debian)
+name: Release App
 
 on:
   push:
-    branches: [main, master]
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-22.04
+  release:
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -23,69 +28,40 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-unknown-linux-gnu
 
-      - name: Install Linux Dependencies
+      - name: Install FFmpeg
+        run: choco install ffmpeg -y
+
+      - name: Bundle FFmpeg Sidecar
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries
+          $ffmpegSizeLimit = 10MB
+          $ffmpegReal = Get-ChildItem -Path C:\ProgramData\chocolatey\lib\ffmpeg -Recurse -Filter ffmpeg.exe | Where-Object { $_.Length -gt $ffmpegSizeLimit } | Sort-Object Length -Descending | Select-Object -First 1
+          
+          if ($null -eq $ffmpegReal) {
+              echo "Error: Could not find real ffmpeg.exe"
+              exit 1
+          }
+          
+          $ffmpegPath = $ffmpegReal.FullName
+          echo "Found real FFmpeg at: $ffmpegPath"
+          
+          Copy-Item $ffmpegPath -Destination src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          Copy-Item $ffmpegPath -Destination src-tauri/ffmpeg-x86_64-pc-windows-msvc.exe
 
-      - name: Apply Linux Conflict Fix (Rename Sidecar)
-        # 這是關鍵步驟：在 Linux CI 環境中，動態將 ffmpeg 改名 stt-ffmpeg
-        # 這樣就不用改動原始碼，Windows 可以繼續用 ffmpeg，Linux 用 stt-ffmpeg 避免衝突
-        run: |
-          echo "Renaming sidecar references in code..."
-          sed -i 's/"ffmpeg"/"stt-ffmpeg"/g' src-tauri/tauri.conf.json
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/converter.rs
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/splitter.rs
-          sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/silence.rs
-          
-          # 暫時關閉 updater，避免 Linux build 只產出 deb 時報錯 "Unable to find a bundled project for the updater"
-          sed -i 's/"createUpdaterArtifacts": "v1Compatible"/"createUpdaterArtifacts": false/g' src-tauri/tauri.conf.json
-          
-          echo "Code references updated."
-
-      - name: Setup FFmpeg (Linux)
-        run: |
-          mkdir -p src-tauri/binaries
-          wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-          tar xvf ffmpeg-release-amd64-static.tar.xz
-          
-          # Explicitly find and copy ffmpeg
-          FFMPEG_BINARY=$(find . -name "ffmpeg" -type f | head -n 1)
-          
-          if [ -z "$FFMPEG_BINARY" ]; then
-            echo "Error: Could not find ffmpeg binary after extraction"
-            exit 1
-          fi
-          
-          echo "Found FFmpeg at: $FFMPEG_BINARY"
-          
-          # Copy to binaries folder (Standard Tauri location)
-          cp "$FFMPEG_BINARY" src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          # Copy to crate root (Backup location, sometimes needed)
-          cp "$FFMPEG_BINARY" src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          chmod +x src-tauri/binaries/stt-ffmpeg-x86_64-unknown-linux-gnu
-          chmod +x src-tauri/stt-ffmpeg-x86_64-unknown-linux-gnu
-          
-          echo "Listing src-tauri/binaries:"
-          ls -l src-tauri/binaries/
-          echo "Listing src-tauri root:"
-          ls -l src-tauri/
-
-      - name: Install npm dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build Tauri App
-        run: npm run tauri build -- --target x86_64-unknown-linux-gnu
-
-      - name: Upload Linux Installer
-        uses: actions/upload-artifact@v4
+      - name: Build and Release
+        uses: tauri-apps/tauri-action@v0.5.25
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          name: Linux-Installer
-          path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
-          if-no-files-found: warn
-          retention-days: 1
+          tagName: app-v__VERSION__ 
+          releaseName: "App v__VERSION__"
+          releaseBody: "See the assets to download this version and install."
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true

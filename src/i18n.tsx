@@ -108,6 +108,10 @@ export const translations = {
     errorSelectReport: "請先選擇報告檔案",
     processingReport: "正在處理音檔並生成報告，這可能需要幾分鐘...",
     convertingToDocx: "正在轉換為 DOCX...",
+    selectModel: "選擇模型 (Model)",
+    defaultSuffix: "(預設)",
+    viewPrompt: "查看 Prompt 範例",
+    defaultPromptTitle: "預設 Prompt 內容",
   },
   en: {
     // App Menu
@@ -213,6 +217,10 @@ export const translations = {
     errorSelectReport: "Please select a report file first",
     processingReport: "Processing audio and generating report, this may take a few minutes...",
     convertingToDocx: "Converting to DOCX...",
+    selectModel: "Select Model",
+    defaultSuffix: "(Default)",
+    viewPrompt: "View Prompt Example",
+    defaultPromptTitle: "Default Prompt Content",
   },
 };
 

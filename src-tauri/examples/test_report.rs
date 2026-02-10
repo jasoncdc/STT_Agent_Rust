@@ -20,7 +20,7 @@ async fn main() {
     let custom_prompt = None;
 
     match agent
-        .process_folder(folder_path, output_path, custom_prompt)
+        .process_folder(folder_path, output_path, None, custom_prompt)
         .await
     {
         Ok(reply) => println!("執行成功: {}", reply),

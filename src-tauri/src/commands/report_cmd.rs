@@ -9,6 +9,7 @@ use tauri::command;
 pub async fn generate_report(
     api_key: String,
     folder_path: String,
+    model_name: Option<String>,
     custom_prompt_path: Option<String>,
 ) -> Result<String, String> {
     if api_key.is_empty() {
@@ -44,7 +45,7 @@ pub async fn generate_report(
     // 1. 生成報告 (Markdown)
     let agent = ReportAgent::new(api_key);
     let report_result = agent
-        .process_folder(&folder_path, &output_path, custom_prompt)
+        .process_folder(&folder_path, &output_path, model_name, custom_prompt)
         .await?;
 
     // 2. 自動轉換為 DOCX
@@ -87,6 +88,18 @@ async fn convert_md_to_docx_internal(md_path: &str) -> Result<String, String> {
     }
 
     Ok(docx_path)
+}
+
+/// 取得預設 Prompt
+#[command]
+pub fn get_default_prompt() -> String {
+    crate::services::report::DEFAULT_PROMPT.to_string()
+}
+
+/// 讀取自定義 Prompt 檔案內容
+#[command]
+pub fn read_custom_prompt(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|e| format!("無法讀取 Prompt 檔案: {}", e))
 }
 
 /// 舊的命令 (保留向後相容)

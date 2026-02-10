@@ -40,6 +40,10 @@ jobs:
           sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/converter.rs
           sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/splitter.rs
           sed -i 's/sidecar("ffmpeg")/sidecar("stt-ffmpeg")/g' src-tauri/src/services/silence.rs
+          
+          # 暫時關閉 updater，避免 Linux build 只產出 deb 時報錯 "Unable to find a bundled project for the updater"
+          sed -i 's/"createUpdaterArtifacts": "v1Compatible"/"createUpdaterArtifacts": false/g' src-tauri/tauri.conf.json
+          
           echo "Code references updated."
 
       - name: Setup FFmpeg (Linux)

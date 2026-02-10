@@ -72,6 +72,24 @@ struct FileData {
     file_uri: String,
 }
 
+pub const DEFAULT_PROMPT: &str = r#"
+            你是一位專業醫學會議紀錄員。請針對音檔內容進行「高解析度逐字紀錄還原」。
+
+            【任務：高解析度逐字聽寫】
+            【重要警告】
+            這份紀錄將用於醫療回溯，**嚴禁任何形式的摘要或省略**。即使內容冗長，也必須完整保留所有病程細節、臨床數值、藥物劑量與醫師間的鑑別診斷邏輯。
+
+            【任務：逐字紀錄還原 (Verbatim Transcription)】
+            請輸出完整對話紀錄，執行以下規則：
+            1. **完整保留**：保留所有醫學術語、數據（如數據、日期）、症狀描述。**請勿因為篇幅而合併對話或是刪除對話**。
+            2. **名字遮罩**：醫生或其他人講到病患名字，要把病患名字改成XXX。
+            3. **格式清理**：
+               - 移除時間戳記（如 [04:10]）。
+               - 統一講者格式為：[講者名稱]（移除 ** 或粗體）。
+            4. **去蕪存菁**：僅刪除無意義的語助詞（呃、那、這個、嘿、吼），但**必須保留**語氣中的轉折詞（但是、不過、然而），因為這影響診斷邏輯。
+            5. **修正口語**：將重複結巴的詞彙修正為通順語句，但**不能改變原意**。
+        "#;
+
 pub struct ReportAgent {
     api_key: String,
     client: reqwest::Client,
@@ -90,8 +108,12 @@ impl ReportAgent {
         &self,
         folder_path: &str,
         output_path: &str,
+        model_name: Option<String>,
         custom_prompt: Option<String>,
     ) -> Result<String, String> {
+        // 0. 決定模型 (預設 gemini-3-pro-preview)
+        let model = model_name.unwrap_or_else(|| "gemini-3-pro-preview".to_string());
+        println!("使用模型: {}", model);
         // 1. 列出音檔
         let audio_extensions = ["mp3", "wav", "aac", "flac", "ogg", "m4a"];
         let folder = Path::new(folder_path);
@@ -130,25 +152,7 @@ impl ReportAgent {
             format!("# 醫學會議精煉報告\n\n生成時間: {}\n\n---\n\n", timestamp);
 
         // 決定使用的 Prompt
-        let prompt = custom_prompt.unwrap_or_else(|| {
-            r#"
-            你是一位專業醫學會議紀錄員。請針對音檔內容進行「高解析度逐字紀錄還原」。
-
-            【任務：高解析度逐字聽寫】
-            【重要警告】
-            這份紀錄將用於醫療回溯，**嚴禁任何形式的摘要或省略**。即使內容冗長，也必須完整保留所有病程細節、臨床數值、藥物劑量與醫師間的鑑別診斷邏輯。
-
-            【任務：逐字紀錄還原 (Verbatim Transcription)】
-            請輸出完整對話紀錄，執行以下規則：
-            1. **完整保留**：保留所有醫學術語、數據（如數據、日期）、症狀描述。**請勿因為篇幅而合併對話或是刪除對話**。
-            2. **名字遮罩**：醫生或其他人講到病患名字，要把病患名字改成XXX。
-            3. **格式清理**：
-               - 移除時間戳記（如 [04:10]）。
-               - 統一講者格式為：[講者名稱]（移除 ** 或粗體）。
-            4. **去蕪存菁**：僅刪除無意義的語助詞（呃、那、這個、嘿、吼），但**必須保留**語氣中的轉折詞（但是、不過、然而），因為這影響診斷邏輯。
-            5. **修正口語**：將重複結巴的詞彙修正為通順語句，但**不能改變原意**。
-        "#.to_string()
-        });
+        let prompt = custom_prompt.unwrap_or_else(|| DEFAULT_PROMPT.to_string());
 
         // 4. 處理每個音檔
         let total = audio_files.len();
@@ -161,7 +165,7 @@ impl ReportAgent {
             println!("🎙️ 正在處理 ({}/{}) {}...", idx + 1, total, filename);
 
             match self
-                .process_single_file(audio_path.to_str().unwrap_or_default(), &prompt)
+                .process_single_file(audio_path.to_str().unwrap_or_default(), &model, &prompt)
                 .await
             {
                 Ok(text) => {
@@ -190,7 +194,12 @@ impl ReportAgent {
 
     /// 處理單一音檔
     /// 短檔案直接處理，長檔案（>24分鐘）分段處理
-    async fn process_single_file(&self, file_path: &str, prompt: &str) -> Result<String, String> {
+    async fn process_single_file(
+        &self,
+        file_path: &str,
+        model_name: &str,
+        prompt: &str,
+    ) -> Result<String, String> {
         // 取得音檔長度
         let duration = self.get_audio_duration(file_path).await?;
         let duration_min = duration / 60.0;
@@ -203,7 +212,7 @@ impl ReportAgent {
             println!("   -> {:.1} 分鐘 (短檔)，直接生成報告...", duration_min);
 
             let file_uri = self.upload_file(file_path).await?;
-            let result = self.generate_content(&file_uri, prompt).await?;
+            let result = self.generate_content(&file_uri, model_name, prompt).await?;
             let _ = self.delete_file(&file_uri).await;
 
             Ok(result)
@@ -241,7 +250,7 @@ impl ReportAgent {
 
                 // 上傳並處理分段
                 let file_uri = self.upload_file(segment_path.to_str().unwrap()).await?;
-                let part_text = self.generate_content(&file_uri, prompt).await?;
+                let part_text = self.generate_content(&file_uri, model_name, prompt).await?;
                 let _ = self.delete_file(&file_uri).await;
 
                 full_transcript.push_str(&format!("\n{}\n", part_text));
@@ -348,10 +357,9 @@ impl ReportAgent {
         };
 
         // Step 1: 初始化 Resumable Upload
-        let init_url = format!(
-            "https://generativelanguage.googleapis.com/upload/v1beta/files?key={}",
-            self.api_key
-        );
+        const UPLOAD_URL: &str = "https://generativelanguage.googleapis.com/upload/v1beta/files";
+
+        let init_url = format!("{UPLOAD_URL}?key={}", self.api_key);
 
         let metadata = serde_json::json!({
             "file": {
@@ -460,10 +468,15 @@ impl ReportAgent {
     }
 
     /// 使用 Gemini 生成內容
-    async fn generate_content(&self, file_uri: &str, prompt: &str) -> Result<String, String> {
+    async fn generate_content(
+        &self,
+        file_uri: &str,
+        model_name: &str,
+        prompt: &str,
+    ) -> Result<String, String> {
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key={}",
-            self.api_key
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            model_name, self.api_key
         );
 
         let request = GenerateRequest {

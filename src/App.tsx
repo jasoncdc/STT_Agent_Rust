@@ -112,11 +112,11 @@ function App() {
     labelKey: keyof typeof t;
     icon: React.ReactNode;
   }[] = [
-    { id: "convert", labelKey: "convert", icon: <ConvertIcon /> },
-    { id: "split", labelKey: "split", icon: <SplitIcon /> },
-    { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
-    { id: "report", labelKey: "report", icon: <ReportIcon /> },
-  ];
+      { id: "convert", labelKey: "convert", icon: <ConvertIcon /> },
+      { id: "split", labelKey: "split", icon: <SplitIcon /> },
+      { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
+      { id: "report", labelKey: "report", icon: <ReportIcon /> },
+    ];
 
   // 點擊外部關閉選單
   useEffect(() => {
@@ -272,7 +272,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.0.9
+                <strong>{t.version}:</strong> 1.1.0
               </p>
               <p>{t.description}</p>
             </div>

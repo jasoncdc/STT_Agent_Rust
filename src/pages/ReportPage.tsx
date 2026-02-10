@@ -14,9 +14,13 @@ export function ReportPage({ isActive }: ReportPageProps) {
     const [folderPath, setFolderPath] = useState("");
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
-    const [converting, setConverting] = useState(false);
-    const [reportPath, setReportPath] = useState("");
+    // const [converting, setConverting] = useState(false);
+    // const [reportPath, setReportPath] = useState("");
+    const [modelName, setModelName] = useState("gemini-3-pro-preview");
     const [customPromptPath, setCustomPromptPath] = useState("");
+    const [showPromptModal, setShowPromptModal] = useState(false);
+    const [defaultPrompt, setDefaultPrompt] = useState("");
+    const [modalTitle, setModalTitle] = useState("");
 
     // 選擇資料夾
     async function handleSelectFolder() {
@@ -54,6 +58,40 @@ export function ReportPage({ isActive }: ReportPageProps) {
         }
     }
 
+    async function handleViewPrompt() {
+        try {
+            const rawPrompt = await invoke<string>("get_default_prompt");
+            const title = t.defaultPromptTitle;
+
+            // Format the prompt to remove leading indentation
+            const lines = rawPrompt.split('\n');
+            // Find minimum indentation (ignoring empty lines)
+            const minIndent = lines
+                .filter(line => line.trim().length > 0)
+                .reduce((min, line) => {
+                    const indent = line.search(/\S/);
+                    return indent !== -1 ? Math.min(min, indent) : min;
+                }, Infinity);
+
+            const cleanedPrompt = lines
+                .map(line => {
+                    if (minIndent !== Infinity && line.length >= minIndent) {
+                        return line.slice(minIndent);
+                    }
+                    return line.trim(); // Trim empty or whitespace-only lines
+                })
+                .join('\n')
+                .trim();
+
+            setDefaultPrompt(cleanedPrompt);
+            setModalTitle(title);
+            setShowPromptModal(true);
+        } catch (err) {
+            console.error("Failed to get default prompt:", err);
+            setOutput(`${t.error}: ${err}`);
+        }
+    }
+
     // 生成報告
     async function runReport() {
         if (!apiKey) {
@@ -67,12 +105,13 @@ export function ReportPage({ isActive }: ReportPageProps) {
 
         setLoading(true);
         setOutput(t.processingReport);
-        setReportPath("");
+        // setReportPath("");
 
         try {
             const result = await invoke("generate_report", {
                 apiKey,
                 folderPath,
+                modelName,
                 customPromptPath: customPromptPath || null,
             });
             setOutput(result as string);
@@ -80,7 +119,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
             // 從結果中提取報告路徑
             const match = (result as string).match(/輸出位置: (.+)/);
             if (match) {
-                setReportPath(match[1]);
+                // setReportPath(match[1]);
             }
         } catch (err) {
             setOutput(`${t.error}: ${err}`);
@@ -89,7 +128,8 @@ export function ReportPage({ isActive }: ReportPageProps) {
         }
     }
 
-    // 選擇 MD 檔案
+    // 選擇 MD 檔案 - 暫時隱藏
+    /*
     async function handleSelectMdFile() {
         try {
             const selected = await open({
@@ -97,7 +137,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 title: language === "zh" ? "選擇 Markdown 報告檔案" : "Select Markdown Report File",
                 filters: [{ name: "Markdown", extensions: ["md"] }],
             });
-
+    
             if (selected && typeof selected === "string") {
                 setReportPath(selected);
             }
@@ -105,17 +145,19 @@ export function ReportPage({ isActive }: ReportPageProps) {
             setOutput(`${t.selectFileError}: ${err}`);
         }
     }
+    */
 
-    // 轉換為 DOCX
+    // 轉換為 DOCX - 暫時隱藏
+    /*
     async function convertToDocx() {
         if (!reportPath) {
             setOutput(`${t.error}: ${t.errorSelectReport}`);
             return;
         }
-
+    
         setConverting(true);
         setOutput(t.convertingToDocx);
-
+    
         try {
             const result = await invoke("convert_md_to_docx", {
                 mdPath: reportPath,
@@ -127,6 +169,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
             setConverting(false);
         }
     }
+    */
 
     // Load default path from localStorage
     useEffect(() => {
@@ -195,6 +238,21 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 </div>
             </div>
 
+            {/* 模型選擇 */}
+            <div className="input-group" style={{ marginBottom: "20px" }}>
+                <label className="input-label">{t.selectModel}</label>
+                <select
+                    className="custom-file-select"
+                    value={modelName}
+                    onChange={(e) => setModelName(e.target.value)}
+                >
+                    <option value="gemini-3-pro-preview">{`gemini-3-pro-preview ${t.defaultSuffix}`}</option>
+                    <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+                    <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                </select>
+            </div>
+
             {/* 自定義 Prompt 輸入 */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
                 <label className="input-label">{t.customPrompt}</label>
@@ -213,6 +271,13 @@ export function ReportPage({ isActive }: ReportPageProps) {
                     >
                         📝 {t.selectPrompt}
                     </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={handleViewPrompt}
+                        title={t.viewPrompt}
+                    >
+                        👁️ {t.viewPrompt}
+                    </button>
                     {customPromptPath && (
                         <button
                             className="btn btn-secondary"
@@ -230,17 +295,16 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 <button
                     className="btn btn-primary"
                     onClick={runReport}
-                    disabled={loading || converting}
+                    disabled={loading}
                 >
                     {loading && <span className="loading-spinner"></span>}
                     {loading ? t.generating : `🚀 ${t.generateReport}`}
                 </button>
             </div>
 
-            {/* 分隔線 */}
+            {/* 暫時隱藏手動工具功能
             <hr style={{ margin: "20px 0", borderColor: "#444" }} />
 
-            {/* 轉換為 DOCX 區塊 */}
             <h3 style={{ marginBottom: "15px", fontSize: "1rem", color: "#888" }}>🛠️ {t.manualTools}</h3>
 
             <div className="input-group" style={{ marginBottom: "15px" }}>
@@ -274,6 +338,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
                     {converting ? t.convertingDocx : `📝 ${t.convertToDocx}`}
                 </button>
             </div>
+            */}
 
             {/* 輸出區域 */}
             {output && (
@@ -282,6 +347,38 @@ export function ReportPage({ isActive }: ReportPageProps) {
                     style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}
                 >
                     {output}
+                </div>
+            )}
+
+            {/* Default Prompt Modal */}
+            {showPromptModal && (
+                <div className="modal-overlay" onClick={() => setShowPromptModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "800px", width: "90%" }}>
+                        <h3 style={{ marginBottom: "16px", color: "var(--text-primary)" }}>{modalTitle}</h3>
+                        <div style={{
+                            backgroundColor: "var(--bg-tertiary)",
+                            padding: "16px",
+                            borderRadius: "8px",
+                            border: "1px solid var(--border)",
+                            whiteSpace: "pre-wrap",
+                            maxHeight: "60vh",
+                            overflowY: "auto",
+                            fontFamily: "monospace",
+                            fontSize: "0.9rem",
+                            lineHeight: "1.5",
+                            color: "var(--text-secondary)"
+                        }}>
+                            {defaultPrompt}
+                        </div>
+                        <div style={{ marginTop: "20px", textAlign: "right" }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowPromptModal(false)}
+                            >
+                                {t.close}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

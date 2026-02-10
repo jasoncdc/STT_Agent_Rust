@@ -26,6 +26,8 @@ fn main() {
             #[allow(deprecated)]
             commands::report_cmd::run_report_cmd,
             commands::report_cmd::generate_report,
+            commands::report_cmd::get_default_prompt,
+            commands::report_cmd::read_custom_prompt,
             commands::report_cmd::convert_md_to_docx,
             commands::app_cmd::exit_app,
             commands::app_cmd::uninstall_app,

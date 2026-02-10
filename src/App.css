@@ -507,13 +507,14 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.content-area > div[style*="block"] {
+.content-area>div[style*="block"] {
   animation: fadeInUp 0.3s ease-out;
 }
 
@@ -803,9 +804,11 @@ h1 {
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  background: var(--bg-tertiary); /* Optional: distinct background for area */
+  background: var(--bg-tertiary);
+  /* Optional: distinct background for area */
   border-radius: 12px;
-  border: 1px dashed var(--border-strong); /* Dashed border for "drop zone" feel */
+  border: 1px dashed var(--border-strong);
+  /* Dashed border for "drop zone" feel */
   min-height: 300px;
   transition: all 0.3s ease;
 }
@@ -880,11 +883,27 @@ h1 {
 }
 
 /* Utility Utilities */
-.display-flex { display: flex; }
-.gap-2 { gap: 0.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mt-4 { margin-top: 1rem; }
-.btn-block { width: 100%; justify-content: center; }
+.display-flex {
+  display: flex;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
 /* ==================== Audio Player Enhancements ==================== */
 .audio-player-wrapper {
   margin-bottom: 24px;
@@ -920,13 +939,13 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="light"] .audio-controls-container {
   background: #ffffff;
   border-color: var(--border);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .player-inner-box {
@@ -939,7 +958,7 @@ h1 {
 [data-theme="light"] .player-inner-box {
   background-color: #ffffff;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .player-top-row {
@@ -950,12 +969,14 @@ h1 {
 }
 
 .track-info {
-  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
+  height: 200px;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
 }
+
+
 
 .track-name {
   color: var(--text-primary);
@@ -999,14 +1020,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
   padding: 8px 16px;
   border-radius: 24px;
 }
 
 [data-theme="light"] .seek-container {
   background: rgba(235, 237, 240, 1);
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .time-display {
@@ -1037,7 +1058,7 @@ h1 {
   background: #ffffff;
   cursor: pointer;
   margin-top: -6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: transform 0.1s;
 }
 
@@ -1141,9 +1162,17 @@ h1 {
   font-size: 0.85rem;
 }
 
-.justify-between { justify-content: space-between; }
-.align-center { align-items: center; }
-.mt-3 { margin-top: 0.75rem; }
+.justify-between {
+  justify-content: space-between;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
+}
 
 /* Custom Select for Dark Theme */
 .custom-file-select {
@@ -1154,7 +1183,8 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 16px;
-  padding-right: 40px; /* Space for arrow */
+  padding-right: 40px;
+  /* Space for arrow */
   font-size: 1rem;
   width: 100%;
   max-width: 400px;
@@ -1186,6 +1216,7 @@ h1 {
 /* Light Theme Override for Custom Select Arrow */
 [data-theme="light"] .custom-file-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-color: var(--bg-primary); /* Ensure background is light */
+  background-color: var(--bg-primary);
+  /* Ensure background is light */
   border-color: var(--border-strong);
 }
