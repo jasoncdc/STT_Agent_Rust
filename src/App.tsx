@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open, ask } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import "./App.css";
@@ -93,6 +93,8 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>("convert");
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState<{ version: string; body: string; update: any } | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem("app-font-size");
@@ -141,26 +143,23 @@ function App() {
     localStorage.setItem("app-theme", theme);
   }, [theme]);
 
-  // Auto-Update Check
+  // Auto-Update Check (VS Code style: one-time notification per version)
   useEffect(() => {
     const checkUpdate = async () => {
       try {
         const update = await check();
         if (update?.available) {
-          const yes = await ask(
-            language === "zh"
-              ? `發現新版本 v${update.version}！\n\n更新內容：\n${update.body}`
-              : `Update to v${update.version} is available!\n\nRelease notes:\n${update.body}`,
-            {
-              title: language === "zh" ? "發現更新" : "Update Available",
-              kind: "info",
-              okLabel: language === "zh" ? "立即更新" : "Update",
-              cancelLabel: language === "zh" ? "稍後" : "Cancel",
-            },
-          );
-          if (yes) {
-            await update.downloadAndInstall();
-            await relaunch();
+          setPendingUpdate({ version: update.version, body: update.body || "", update });
+
+          // Only show notification once per version
+          const dismissedVersion = localStorage.getItem("dismissed-update-version");
+          if (dismissedVersion !== update.version) {
+            localStorage.setItem("dismissed-update-version", update.version);
+            // Show a brief notification via the output or alert
+            const msg = language === "zh"
+              ? `發現新版本 v${update.version}，可從「檔案 → 更新版本」進行更新。`
+              : `v${update.version} is available. Update from File → Update Available.`;
+            alert(msg);
           }
         }
       } catch (error) {
@@ -168,7 +167,7 @@ function App() {
       }
     };
     checkUpdate();
-  }, [language]);
+  }, []);
 
   const handleExit = async () => {
     await invoke("exit_app");
@@ -272,7 +271,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.0
+                <strong>{t.version}:</strong> 1.1.1
               </p>
               <p>{t.description}</p>
             </div>
@@ -304,6 +303,27 @@ function App() {
               <button className="dropdown-item" onClick={handleShowAbout}>
                 {t.about}
               </button>
+              {pendingUpdate && (
+                <button
+                  className="dropdown-item"
+                  style={{ color: "var(--accent-primary)", fontWeight: "bold" }}
+                  onClick={async () => {
+                    setOpenMenu(null);
+                    setIsUpdating(true);
+                    try {
+                      await pendingUpdate.update.downloadAndInstall();
+                      await relaunch();
+                    } catch (err) {
+                      console.error("Update failed:", err);
+                      setIsUpdating(false);
+                      alert(language === "zh" ? `更新失敗: ${err}` : `Update failed: ${err}`);
+                    }
+                  }}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? t.updating : `${t.updateVersion} (v${pendingUpdate.version})`}
+                </button>
+              )}
               <div className="dropdown-divider"></div>
               <button className="dropdown-item" onClick={handleUninstall}>
                 {t.uninstall}

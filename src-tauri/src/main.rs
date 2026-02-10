@@ -11,6 +11,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Manage AudioPlayer state with Mutex<Option<AudioPlayer>>
         .manage(Mutex::new(None::<stt_agent_rust_lib::services::AudioPlayer>) as AudioPlayerState)
         .invoke_handler(tauri::generate_handler![
