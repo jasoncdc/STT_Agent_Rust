@@ -95,8 +95,43 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     // Check for query param ?page=welcome
     const params = new URLSearchParams(window.location.search);
-    return params.get("page") === "welcome" ? "welcome" : "convert";
+    if (params.get("page") === "welcome") {
+      return "welcome";
+    }
+
+    // Check localStorage for saved tab
+    const lastTab = localStorage.getItem("app-last-tab");
+    
+    // User requested: If last closed on Welcome Page -> reopen Welcome Page
+    if (lastTab === "welcome") {
+      return "welcome";
+    }
+
+    // User requested: If last closed in project -> reopen Convert Page (default)
+    // We assume any other tab implies "in project"
+    // Also check if we have a last project to load
+    const lastProject = localStorage.getItem("app-last-project");
+    if (lastProject) {
+        return "convert";
+    }
+
+    // Fallback
+    return "welcome";
   });
+
+  // Load last project on startup if we are in project mode
+  useEffect(() => {
+    const lastProject = localStorage.getItem("app-last-project");
+    if (activeTab !== "welcome" && lastProject) {
+        invoke("open_project_cmd", { path: lastProject }).catch(console.error);
+    }
+  }, []); // Run once on mount
+
+  // Save activeTab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("app-last-tab", activeTab);
+  }, [activeTab]);
+
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
   const [showAbout, setShowAbout] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState<{ version: string; body: string; update: any } | null>(null);
@@ -278,7 +313,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.4
+                <strong>{t.version}:</strong> 1.1.5
               </p>
               <p>{t.description}</p>
             </div>

@@ -53,6 +53,9 @@ export function WelcomePage({ onProjectOpened }: WelcomePageProps) {
 
         localStorage.setItem("recent-projects", JSON.stringify(current));
         setRecentProjects(current.slice(0, 5));
+        
+        // Also save as "last opened project" for auto-load
+        localStorage.setItem("app-last-project", path);
     };
 
     const handleCreateProject = async () => {
@@ -156,7 +159,8 @@ export function WelcomePage({ onProjectOpened }: WelcomePageProps) {
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    height: 100vh;
+                    height: 100%;
+                    width: 100%;
                     background-color: var(--bg-primary);
                     color: var(--text-primary);
                 }
