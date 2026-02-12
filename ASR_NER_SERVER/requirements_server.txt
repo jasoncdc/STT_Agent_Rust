@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+torch
+hanlp
+opencc-python-reimplemented
+transformers
+accelerate
+# Add other existing dependencies from asr_ner.py environment if known, e.g. qwen_asr dependencies

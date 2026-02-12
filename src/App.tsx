@@ -9,10 +9,12 @@ import "./App.css";
 import { ConvertPage } from "./pages/ConvertPage";
 import { SplitPage } from "./pages/SplitPage";
 import { SilencePage } from "./pages/SilencePage";
+import { SilenceAutoPage } from "./pages/SilenceAutoPage";
+import { WelcomePage } from "./pages/WelcomePage";
 import { ReportPage } from "./pages/ReportPage";
 import { useI18n } from "./i18n";
 
-type Tab = "convert" | "split" | "silence" | "report";
+type Tab = "welcome" | "convert" | "split" | "silence" | "silence-auto" | "report";
 type MenuOpen = "file" | "edit" | null;
 type Theme = "dark" | "light";
 
@@ -90,7 +92,11 @@ const ReportIcon = () => (
 function App() {
   const { language, setLanguage, t } = useI18n();
 
-  const [activeTab, setActiveTab] = useState<Tab>("convert");
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    // Check for query param ?page=welcome
+    const params = new URLSearchParams(window.location.search);
+    return params.get("page") === "welcome" ? "welcome" : "convert";
+  });
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
   const [showAbout, setShowAbout] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState<{ version: string; body: string; update: any } | null>(null);
@@ -117,8 +123,27 @@ function App() {
       { id: "convert", labelKey: "convert", icon: <ConvertIcon /> },
       { id: "split", labelKey: "split", icon: <SplitIcon /> },
       { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
+      { id: "silence-auto", labelKey: "silenceAuto", icon: <SilenceIcon /> },
       { id: "report", labelKey: "report", icon: <ReportIcon /> },
     ];
+
+  // Helper to save recent project
+  const saveRecentProject = (path: string) => {
+    try {
+      const name = path.split(/[/\\]/).pop() || path;
+      const newProject = { path, name, lastOpened: Date.now() };
+      const saved = localStorage.getItem("recent-projects");
+      let current: any[] = saved ? JSON.parse(saved) : [];
+
+      current = current.filter((p: any) => p.path !== path);
+      current.unshift(newProject);
+      current = current.slice(0, 10);
+
+      localStorage.setItem("recent-projects", JSON.stringify(current));
+    } catch (e) {
+      console.error("Failed to save recent project", e);
+    }
+  };
 
   // 點擊外部關閉選單
   useEffect(() => {
@@ -231,31 +256,7 @@ function App() {
     setOpenMenu(null);
   };
 
-  const handleSetProjectPath = async () => {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: false,
-        title:
-          language === "zh"
-            ? "選擇新的專案預設路徑"
-            : "Select new project path",
-      });
 
-      if (selected && typeof selected === "string") {
-        await invoke("set_project_root_dir", { path: selected });
-        alert(
-          language === "zh"
-            ? `已設定新的專案路徑: ${selected}`
-            : `Project path set to: ${selected}`,
-        );
-      }
-    } catch (error) {
-      console.error("無法設定路徑:", error);
-      alert(language === "zh" ? "設定失敗" : "Setting failed");
-    }
-    setOpenMenu(null);
-  };
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";
@@ -277,7 +278,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.3
+                <strong>{t.version}:</strong> 1.1.4
               </p>
               <p>{t.description}</p>
             </div>
@@ -302,8 +303,39 @@ function App() {
           </button>
           {openMenu === "file" && (
             <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={handleSetProjectPath}>
-                {t.setProjectPath}
+              <button className="dropdown-item" onClick={async () => {
+                try {
+                  const selected = await open({ directory: true, multiple: false, title: language === "zh" ? "選擇新建專案位置" : "Select location for new project" });
+                  if (selected && typeof selected === "string") {
+                    await invoke("create_project_cmd", { path: selected });
+                    saveRecentProject(selected);
+                    alert(language === "zh" ? `專案建立成功: ${selected}` : `Project created: ${selected}`);
+                    setOpenMenu(null);
+                  }
+                } catch (e) { console.error(e); alert(e); }
+              }}>
+                {t.newProject}
+              </button>
+              <button className="dropdown-item" onClick={async () => {
+                try {
+                  const selected = await open({ directory: true, multiple: false, title: language === "zh" ? "選擇專案資料夾" : "Select project folder" });
+                  if (selected && typeof selected === "string") {
+                    await invoke("open_project_cmd", { path: selected });
+                    saveRecentProject(selected);
+                    alert(language === "zh" ? `專案開啟成功: ${selected}` : `Project opened: ${selected}`);
+                    setOpenMenu(null);
+                  }
+                } catch (e) { console.error(e); alert(e); }
+              }}>
+                {t.openProject}
+              </button>
+              <button className="dropdown-item" onClick={async () => {
+                try {
+                  await invoke("new_window_cmd");
+                  setOpenMenu(null);
+                } catch (e) { console.error(e); alert(e); }
+              }}>
+                {t.newWindow}
               </button>
               <div className="dropdown-divider"></div>
               <button className="dropdown-item" onClick={handleShowAbout}>
@@ -412,61 +444,66 @@ function App() {
       </div>
 
       <div className="app-layout">
-        {/* Sidebar */}
-        <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
-          {/* Header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              minHeight: isSidebarCollapsed ? "10px" : "50px",
-              paddingLeft: isSidebarCollapsed ? "0" : "24px",
-              transition: "all 0.3s ease",
-              overflow: "hidden",
-            }}
-          >
-            {/* Show Title only when Expanded */}
-            {!isSidebarCollapsed && (
-              <h2 className="sidebar-title" style={{ padding: 0 }}>
-                {t.appTitle}
-              </h2>
-            )}
-          </div>
+        {/* Sidebar - Hide if welcome page */}
+        {activeTab !== "welcome" && (
+          <aside className={`sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                minHeight: isSidebarCollapsed ? "10px" : "50px",
+                paddingLeft: isSidebarCollapsed ? "0" : "24px",
+                transition: "all 0.3s ease",
+                overflow: "hidden",
+              }}
+            >
+              {/* Show Title only when Expanded */}
+              {!isSidebarCollapsed && (
+                <h2 className="sidebar-title" style={{ padding: 0 }}>
+                  {t.appTitle}
+                </h2>
+              )}
+            </div>
 
-          <nav className="sidebar-nav">
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`sidebar-item ${activeTab === item.id ? "active" : ""}`}
-                title={isSidebarCollapsed ? (t[item.labelKey] as string) : ""}
-              >
-                <span className="sidebar-icon">{item.icon}</span>
-                {!isSidebarCollapsed && (
-                  <span className="sidebar-label">
-                    {t[item.labelKey] as string}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+            <nav className="sidebar-nav">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`sidebar-item ${activeTab === item.id ? "active" : ""}`}
+                  title={isSidebarCollapsed ? (t[item.labelKey] as string) : ""}
+                >
+                  <span className="sidebar-icon">{item.icon}</span>
+                  {!isSidebarCollapsed && (
+                    <span className="sidebar-label">
+                      {t[item.labelKey] as string}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
 
-          {/* Vertical Toggle Strip */}
-          <div
-            className="sidebar-toggle-strip"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            title={isSidebarCollapsed ? "Expand" : "Collapse"}
-          >
-            <span className="sidebar-toggle-arrow">
-              {isSidebarCollapsed ? "▶" : "◀"}
-            </span>
-          </div>
-        </aside>
+            {/* Vertical Toggle Strip */}
+            <div
+              className="sidebar-toggle-strip"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              title={isSidebarCollapsed ? "Expand" : "Collapse"}
+            >
+              <span className="sidebar-toggle-arrow">
+                {isSidebarCollapsed ? "▶" : "◀"}
+              </span>
+            </div>
+          </aside>
+        )}
 
         {/* Main Content */}
         <main className="main-content">
           {/* Content Area - All components stay mounted, hidden with CSS for state persistence */}
           <div className="content-area">
+            {activeTab === "welcome" && (
+              <WelcomePage onProjectOpened={() => setActiveTab("convert")} />
+            )}
             <div
               style={{ display: activeTab === "convert" ? "block" : "none" }}
             >
@@ -479,6 +516,11 @@ function App() {
               style={{ display: activeTab === "silence" ? "block" : "none" }}
             >
               <SilencePage />
+            </div>
+            <div
+              style={{ display: activeTab === "silence-auto" ? "block" : "none" }}
+            >
+              <SilenceAutoPage />
             </div>
             <div style={{ display: activeTab === "report" ? "block" : "none" }}>
               <ReportPage isActive={activeTab === "report"} />

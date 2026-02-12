@@ -32,6 +32,13 @@ body {
   --warning: #ff9f0a;
   --danger: #ff453a;
 
+  /* Highlights */
+  --highlight-match-bg: #fffacd;
+  /* LemonChiffon - High contrast on dark */
+  --highlight-match-text: #000000;
+  --highlight-match-border: #ffd700;
+  --highlight-item-bg: rgba(255, 255, 0, 0.2);
+
   /* Typography */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
@@ -64,7 +71,18 @@ body {
   --text-tertiary: rgba(0, 0, 0, 0.4);
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.15);
+  --border: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.15);
   --shadow: rgba(0, 0, 0, 0.1);
+
+  /* Highlights - Adjusted for Light Mode */
+  --highlight-match-bg: #ffeb3b;
+  /* Vibrant Yellow */
+  --highlight-match-text: #000000;
+  --highlight-match-border: #fbc02d;
+  /* Darker Yellow border */
+  --highlight-item-bg: rgba(255, 215, 0, 0.4);
+  /* Darker/More visible yellow for selection */
 }
 
 /* App Wrapper */

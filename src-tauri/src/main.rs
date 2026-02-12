@@ -14,6 +14,11 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Manage AudioPlayer state with Mutex<Option<AudioPlayer>>
         .manage(Mutex::new(None::<stt_agent_rust_lib::services::AudioPlayer>) as AudioPlayerState)
+        .manage(stt_agent_rust_lib::services::silence::Silence::new())
+        .manage(
+            Mutex::new(None::<std::path::PathBuf>)
+                as stt_agent_rust_lib::services::file_manager::CurrentProjectState,
+        )
         .invoke_handler(tauri::generate_handler![
             commands::audio_cmd::run_convert_cmd,
             commands::audio_cmd::convert_files_to_mp3,
@@ -38,6 +43,15 @@ fn main() {
             commands::player_cmd::pause,
             commands::player_cmd::seek,
             commands::player_cmd::get_playback_state,
+            // Silence & Auto-Silence
+            commands::silence_cmd::connect_server,
+            commands::silence_cmd::transcribe_audio,
+            commands::silence_cmd::silence_audio,
+            // Project Commands
+            commands::project_cmd::create_project_cmd,
+            commands::project_cmd::open_project_cmd,
+            commands::project_cmd::get_current_project_cmd,
+            commands::project_cmd::new_window_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

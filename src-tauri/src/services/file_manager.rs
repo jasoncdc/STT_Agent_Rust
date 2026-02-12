@@ -16,6 +16,8 @@ pub struct AppConfig {
     pub custom_project_root: Option<String>,
 }
 
+pub type CurrentProjectState = std::sync::Mutex<Option<PathBuf>>;
+
 impl ProjectPaths {
     fn get_config_path() -> PathBuf {
         let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
@@ -120,5 +122,31 @@ impl ProjectPaths {
         fs::create_dir_all(&self.silence).map_err(|e| format!("無法建立消音目錄: {}", e))?;
         fs::create_dir_all(&self.report).map_err(|e| format!("無法建立報告目錄: {}", e))?;
         Ok(())
+    }
+
+    /// 於指定路徑建立新專案 (Explicit Creation)
+    pub fn create(path: &str) -> Result<Self, String> {
+        let root = Path::new(path);
+        let paths = Self {
+            root: root.to_path_buf(),
+            converted: root.join("01_converted"),
+            split: root.join("02_split"),
+            silence: root.join("03_silence"),
+            report: root.join("04_report"),
+        };
+        paths.create_all_dirs()?;
+        Ok(paths)
+    }
+
+    pub fn from_root(root: PathBuf) -> Result<Self, String> {
+        let paths = Self {
+            converted: root.join("01_converted"),
+            split: root.join("02_split"),
+            silence: root.join("03_silence"),
+            report: root.join("04_report"),
+            root,
+        };
+        paths.create_all_dirs()?;
+        Ok(paths)
     }
 }

@@ -11,8 +11,10 @@ export function ConvertPage() {
 
     async function selectFiles() {
         try {
+            const currentProject = await invoke<string | null>("get_current_project_cmd");
             const files = await open({
                 multiple: true,
+                defaultPath: currentProject || undefined,
                 filters: [
                     {
                         name: language === "zh" ? "影音檔案" : "Audio/Video Files",
@@ -68,7 +70,7 @@ export function ConvertPage() {
 
     // Icons
     const HeroIcon = () => (
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{opacity: 0.8}}>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
             <line x1="12" y1="11" x2="12" y2="17"></line>
             <line x1="9" y1="14" x2="15" y2="14"></line>
@@ -112,7 +114,7 @@ export function ConvertPage() {
 
                     <div className="file-list-card">
                         <div className="file-list-header">
-                            {t.selectedFiles} 
+                            {t.selectedFiles}
                             <span className="badge">{selectedFiles.length}</span>
                         </div>
                         <ul className="file-list">
@@ -126,9 +128,9 @@ export function ConvertPage() {
                     </div>
 
                     <div className="action-footer mt-4">
-                        <button 
-                            className="btn btn-primary" 
-                            onClick={runConvert} 
+                        <button
+                            className="btn btn-primary"
+                            onClick={runConvert}
                             disabled={loading}
                         >
                             {loading ? (

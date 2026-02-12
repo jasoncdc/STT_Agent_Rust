@@ -1,4 +1,5 @@
 // src-tauri/src/commands/audio_cmd.rs
+use crate::services::file_manager::{CurrentProjectState, ProjectPaths};
 use crate::services::{Converter, Silence, Splitter};
 use tauri::command;
 
@@ -25,6 +26,7 @@ pub fn run_convert_cmd() -> String {
 #[command]
 pub async fn convert_files_to_mp3(
     app: tauri::AppHandle,
+    state: tauri::State<'_, CurrentProjectState>,
     file_paths: Vec<String>,
 ) -> Result<String, String> {
     if file_paths.is_empty() {
@@ -39,10 +41,18 @@ pub async fn convert_files_to_mp3(
     // 用於最後顯示路徑
     let first_file_path = file_paths.first().cloned();
 
+    let current_project_root = state.lock().unwrap().clone();
+
     // 針對每一個檔案，都必須建立其專屬的 Project Folder
     for path in file_paths {
         // 1. 初始化專案路徑
-        let project_paths = match crate::services::ProjectPaths::new(&path) {
+        let project_paths_result = if let Some(root) = &current_project_root {
+            ProjectPaths::from_root(root.clone())
+        } else {
+            ProjectPaths::new(&path)
+        };
+
+        let project_paths = match project_paths_result {
             Ok(p) => p,
             Err(e) => {
                 fail_count += 1;
@@ -135,6 +145,7 @@ pub struct SegmentInfo {
 #[command]
 pub async fn split_audio_segments(
     app: tauri::AppHandle,
+    state: tauri::State<'_, CurrentProjectState>,
     audio_path: String,
     segments: Vec<SegmentInfo>,
 ) -> Result<String, String> {
@@ -156,8 +167,15 @@ pub async fn split_audio_segments(
         }
     }
 
+    let current_project_root = state.lock().unwrap().clone();
+
     // 使用 ProjectPaths 建立輸出目錄 (02_split)
-    let project_paths = crate::services::ProjectPaths::new(&audio_path)?;
+    let project_paths = if let Some(root) = &current_project_root {
+        ProjectPaths::from_root(root.clone())?
+    } else {
+        crate::services::ProjectPaths::new(&audio_path)?
+    };
+
     project_paths.create_all_dirs()?;
     let output_dir_str = project_paths.split.to_string_lossy().to_string();
 
@@ -227,6 +245,7 @@ pub struct SilenceSegment {
 #[command]
 pub async fn apply_silence_command(
     app: tauri::AppHandle,
+    state: tauri::State<'_, CurrentProjectState>,
     audio_path: String,
     segments: Vec<SilenceSegment>,
 ) -> Result<String, String> {
@@ -275,8 +294,15 @@ pub async fn apply_silence_command(
         parsed_segments.push((start, end));
     }
 
+    let current_project_root = state.lock().unwrap().clone();
+
     // 建立輸出目錄 (03_silence)
-    let project_paths = crate::services::ProjectPaths::new(&audio_path)?;
+    let project_paths = if let Some(root) = &current_project_root {
+        ProjectPaths::from_root(root.clone())?
+    } else {
+        crate::services::ProjectPaths::new(&audio_path)?
+    };
+
     project_paths.create_all_dirs()?;
     let output_dir_str = project_paths.silence.to_string_lossy().to_string();
 

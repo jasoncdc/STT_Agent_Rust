@@ -150,8 +150,15 @@ export function SplitPage() {
     // Load audio file
     async function handleLoadTrack() {
         try {
+            let defaultPath = undefined;
+            const currentProject = await invoke<string | null>("get_current_project_cmd");
+            if (currentProject) {
+                defaultPath = currentProject + "/01_converted";
+            }
+
             const selected = await open({
                 multiple: false,
+                defaultPath,
                 filters: [
                     {
                         name: "Audio Files",
@@ -313,7 +320,7 @@ export function SplitPage() {
 
     // Icons
     const AudioIcon = () => (
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{opacity: 0.8}}>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8 }}>
             <path d="M9 18V5l12-2v13"></path>
             <circle cx="6" cy="18" r="3"></circle>
             <circle cx="18" cy="16" r="3"></circle>
@@ -341,7 +348,7 @@ export function SplitPage() {
             {/* Audio Player Section */}
             {/* Audio Player Header Section */}
             {/* Audio Player Section */}
-            
+
             {/* Audio Player Wrapper */}
             <div className={`audio-player-wrapper ${isLoaded ? 'active' : 'empty'}`}>
                 {!isLoaded ? (
@@ -353,7 +360,7 @@ export function SplitPage() {
                         </div>
                         <p className="subtext">{t.errorLoadAudio}</p>
                         <button className="btn btn-primary mt-3" onClick={handleLoadTrack} disabled={loading}>
-                             📂 {t.loadAudio}
+                            📂 {t.loadAudio}
                         </button>
                     </div>
                 ) : (
@@ -361,8 +368,8 @@ export function SplitPage() {
                     <div className="audio-controls-container">
                         {/* Header: Title + Button */}
                         <div style={{ marginBottom: '16px' }}>
-                             <h3 style={{ margin: '0 0 12px 0' }}>🎵 {t.audioPlayer}</h3>
-                             <button className="btn btn-secondary" onClick={handleLoadTrack}>
+                            <h3 style={{ margin: '0 0 12px 0' }}>🎵 {t.audioPlayer}</h3>
+                            <button className="btn btn-secondary" onClick={handleLoadTrack}>
                                 📂 {t.changeFolder || t.loadAudio}
                             </button>
                         </div>
@@ -380,7 +387,7 @@ export function SplitPage() {
                                 <button className="play-btn" onClick={handlePlayPause}>
                                     {isPlaying ? <PauseIcon /> : <PlayIcon />}
                                 </button>
-                                
+
                                 <div className="seek-container">
                                     <span className="time-display">{formatTime(currentTime)}</span>
                                     <input
@@ -529,9 +536,9 @@ export function SplitPage() {
 
                 {/* Split Controls */}
                 <div className="action-footer mt-4">
-                    <button 
-                        className="btn btn-primary btn-large" 
-                        onClick={runSplit} 
+                    <button
+                        className="btn btn-primary btn-large"
+                        onClick={runSplit}
                         disabled={loading}
                     >
                         {loading ? (

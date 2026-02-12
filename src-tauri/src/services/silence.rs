@@ -1,12 +1,87 @@
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tauri::AppHandle;
 use tauri_plugin_shell::ShellExt;
 
-pub struct Silence;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Segment {
+    pub start: f64,
+    pub end: f64,
+    pub text: String,
+    pub name: String,
+    pub start_idx: Option<usize>,
+    pub end_idx: Option<usize>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TranscribeResponse {
+    pub filename: String,
+    pub duration: f64,
+    pub segments: Vec<Segment>,
+    pub full_text: String,
+}
+
+pub struct Silence {
+    http_client: reqwest::Client,
+}
 
 impl Silence {
     pub fn new() -> Self {
-        Self
+        Self {
+            http_client: reqwest::Client::new(),
+        }
+    }
+
+    pub async fn check_health(&self, ip: &str) -> bool {
+        let url = format!("{}/health", ip.trim_end_matches('/'));
+        match self
+            .http_client
+            .get(&url)
+            .timeout(std::time::Duration::from_secs(2))
+            .send()
+            .await
+        {
+            Ok(resp) => resp.status().is_success(),
+            Err(_) => false,
+        }
+    }
+
+    pub async fn transcribe(
+        &self,
+        ip: &str,
+        file_path: &str,
+    ) -> Result<TranscribeResponse, String> {
+        let url = format!("{}/transcribe", ip.trim_end_matches('/'));
+
+        let file_path = Path::new(file_path);
+        if !file_path.exists() {
+            return Err(format!("File not found: {:?}", file_path));
+        }
+
+        // Create multipart form
+        let form = reqwest::multipart::Form::new()
+            .file("file", file_path)
+            .await
+            .map_err(|e| format!("Failed to create multipart form: {}", e))?;
+
+        let resp = self
+            .http_client
+            .post(&url)
+            .multipart(form)
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {}", e))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Server returned error: {}", resp.status()));
+        }
+
+        let result = resp
+            .json::<TranscribeResponse>()
+            .await
+            .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+        Ok(result)
     }
 
     pub fn execute(&self) {
