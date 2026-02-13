@@ -18,7 +18,7 @@ class ASR_NER_Engine:
         print("載入 ASR 模型 (Qwen3-ASR-0.6B)...")
         self.model = Qwen3ASRModel.LLM(
             model="Qwen/Qwen3-ASR-0.6B",
-            gpu_memory_utilization=0.6,    # 降低一些給 HanLP 空間 (雖然 HanLP 用 CPU，但保險起見)
+            gpu_memory_utilization=0.5,    # 0.3 仍不足以初始化 KV Cache，調高至 0.4 以確保穩定性
             max_model_len=4096,
             max_inference_batch_size=1,
             max_new_tokens=4096,

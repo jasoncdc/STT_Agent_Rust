@@ -101,7 +101,7 @@ function App() {
 
     // Check localStorage for saved tab
     const lastTab = localStorage.getItem("app-last-tab");
-    
+
     // User requested: If last closed on Welcome Page -> reopen Welcome Page
     if (lastTab === "welcome") {
       return "welcome";
@@ -112,7 +112,7 @@ function App() {
     // Also check if we have a last project to load
     const lastProject = localStorage.getItem("app-last-project");
     if (lastProject) {
-        return "convert";
+      return "convert";
     }
 
     // Fallback
@@ -123,7 +123,7 @@ function App() {
   useEffect(() => {
     const lastProject = localStorage.getItem("app-last-project");
     if (activeTab !== "welcome" && lastProject) {
-        invoke("open_project_cmd", { path: lastProject }).catch(console.error);
+      invoke("open_project_cmd", { path: lastProject }).catch(console.error);
     }
   }, []); // Run once on mount
 
@@ -313,7 +313,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.5
+                <strong>{t.version}:</strong> 1.1.6
               </p>
               <p>{t.description}</p>
             </div>

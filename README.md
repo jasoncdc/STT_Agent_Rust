@@ -2,7 +2,7 @@
 
 專為醫療專業人員設計的強大、安全且跨平台的桌面應用程式，用於高效處理、編輯和分析錄音檔案。基於 **Rust** 的穩健性與 **React** 的靈活性構建。
 
-![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.6-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri_v2-orange.svg)
 
@@ -11,22 +11,23 @@
 ## 🚀 核心功能 (Features)
 
 1.  **全能轉檔 (Format Converter)**
-    *   支援將多種影音格式 (m4a, mp4, wav 等) 轉換為標準 **MP3**。
-    *   自動建立並整理標準化的專案資料夾結構。
-    *   核心採用業界標準 **FFmpeg** 技術。
+    *   支援將多種影音格式 (m4a, mp4, wav 等) 轉換為標準 **MP3** (44.1kHz, Mono/Stereo)。
+    *   **自動化專案結構**：自動建立並管理 `01_converted`, `02_split`, `03_silence` 等標準工作流資料夾。
+    *   核心採用業界標準 **FFmpeg** 技術，確保轉換穩定性。
 
 2.  **精準切割 (Smart Splitter)**
     *   根據精確的時間戳記，將長錄音分割為多個片段。
     *   能夠快速將單次錄音中的多個不同病患案例分離出來。
 
-3.  **隱私消音 (Silence Processing)**
-    *   **隱私優先**：一鍵手動將特定時間區段 (如病患姓名、個資) 進行靜音處理。
-    *   使用高品質靜音濾波器重新編碼，確保敏感資料徹底去識別化。
+3.  **智慧消音 (Time-Based Silence)**
+    *   **批次逐字稿 (Batch Transcription)**：自動轉錄整個資料夾的錄音檔，並儲存為隱藏的 JSON 結構 (`.silence_reg`)，不干擾原始檔案。
+    *   **視覺化消音 (Visual Muting)**：在逐字稿介面上直接勾選敏感段落，精準移除病患姓名或隱私資訊。
+    *   **無損處理**：僅對指定區段進行靜音，保留原始音質與時間軸。
 
 4.  **智慧報告 (AI Reporting)**
-    *   深度整合 **Google Gemini Pro** 模型。
-    *   生成「逐字稿等級」的高解析度醫療紀錄報告。
-    *   透過 Google GenAI API 安全處理檔案上傳與報告生成。
+    *   **深度整合 LLM**：支援整合 **Google Gemini Pro** or **Local LLM** 模型，理解上下文並生成專業報告。
+    *   **自動化歸檔**：生成的報告會自動儲存至 `04_report` 資料夾，方便日後查閱與匯出。
+    *   **高解析度紀錄**：生成「逐字稿等級」的詳細醫療紀錄，涵蓋病患主訴、病史摘要與處置建議。
 
 ---
 
@@ -118,8 +119,20 @@ npm run tauri dev
 
 *   **`src/`** (Frontend): React + TypeScript 使用者介面。
 *   **`src-tauri/src/commands/`** (Controller): 定義可供前端呼叫的 Tauri 指令層。
-*   **`src-tauri/src/services/`** (Business Logic): 核心功能實作區 (FFmpeg 邏輯、報告生成等)。
+*   **`src-tauri/src/services/`** (Business Logic): 核心功能模組化實作區：
+    *   `converter.rs`: 負責轉檔與正規化。
+    *   `splitter.rs`: 負責長錄音切割。
+    *   `silence.rs`: 負責靜音處理與 FFmpeg 濾波器生成。
+    *   `file_manager.rs`: 負責檔案讀寫與路徑管理。
 *   **`src-tauri/src/models/`** (Data): 共用的資料結構定義。
+
+### 資料夾工作流 (Workflow Directories)
+程式會自動在您的專案路徑下建立以下結構：
+*   **`01_converted/`**: 存放已轉為標準 MP3 的原始檔。
+*   **`02_split/`**: 存放切割後的短片段。
+*   **`03_silence/`**: 存放經過去識別化 (消音) 處理後的最終檔案。
+*   **`04_report/`**: 存放由 AI 生成的醫療紀錄報告 (Markdown/PDF)。
+*   **`.silence_reg/`** (Hidden): 存放批次逐字稿的 JSON 資料。
 
 ---
 

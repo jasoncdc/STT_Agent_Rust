@@ -52,6 +52,11 @@ fn main() {
             commands::project_cmd::open_project_cmd,
             commands::project_cmd::get_current_project_cmd,
             commands::project_cmd::new_window_cmd,
+            // File Commands
+            commands::file_cmd::save_text_file,
+            commands::file_cmd::read_text_file,
+            commands::file_cmd::check_file_exists,
+            commands::file_cmd::ensure_dir_exists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

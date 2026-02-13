@@ -148,10 +148,18 @@ export function SilencePage() {
 
     async function handleSelectFolder() {
         try {
+            let defaultPath = "02_split";
+            const currentProject = await invoke<string | null>("get_current_project_cmd");
+            if (currentProject) {
+                // Ensure proper path separator handling
+                const separator = currentProject.includes("\\") ? "\\" : "/";
+                defaultPath = `${currentProject}${separator}02_split`;
+            }
+
             const selected = await open({
                 directory: true,
                 multiple: false,
-                defaultPath: "02_split",
+                defaultPath,
             });
 
             if (selected && typeof selected === "string") {
@@ -386,7 +394,7 @@ export function SilencePage() {
                                         </svg>
                                     )}
                                 </button>
-                                
+
                                 <div className="seek-container">
                                     <span className="time-display">{formatTime(currentTime)}</span>
                                     <input
@@ -445,93 +453,93 @@ export function SilencePage() {
                         borderRadius: "8px",
                         overflow: "hidden"
                     }}>
-                    <thead>
-                        <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
-                            <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>{t.segmentNote}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.startTime}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.endTime}</th>
-                            <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>{t.action}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {segments.map((segment) => (
-                            <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
-                                <td style={{ padding: "8px 4px 8px 12px", width: "200px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.note}
-                                        onChange={(e) => updateSegment(segment.id, "note", e.target.value)}
-                                        placeholder={t.segmentNote}
-                                        style={{
-                                            width: "100%",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.note ? "var(--text-primary, #fff)" : "#888"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.startTime}
-                                        onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
-                                        placeholder="00:00:00.000"
-                                        style={{
-                                            width: "130px",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.startTime ? "var(--text-primary, #fff)" : "#888",
-                                            textAlign: "center",
-                                            fontFamily: "monospace"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
-                                    <input
-                                        type="text"
-                                        value={segment.endTime}
-                                        onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
-                                        placeholder="00:00:00.000"
-                                        style={{
-                                            width: "130px",
-                                            padding: "8px",
-                                            border: "1px solid var(--border, #444)",
-                                            borderRadius: "8px",
-                                            backgroundColor: "var(--bg-primary, #121212)",
-                                            color: segment.endTime ? "var(--text-primary, #fff)" : "#888",
-                                            textAlign: "center",
-                                            fontFamily: "monospace"
-                                        }}
-                                    />
-                                </td>
-                                <td style={{ padding: "8px 12px", textAlign: "center" }}>
-                                    <button
-                                        onClick={() => deleteSegment(segment.id)}
-                                        disabled={segments.length <= 1}
-                                        style={{
-                                            padding: "8px 16px",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            backgroundColor: segments.length <= 1 ? "#555" : "#e74c3c",
-                                            color: "#fff",
-                                            cursor: segments.length <= 1 ? "not-allowed" : "pointer",
-                                            fontWeight: "bold",
-                                            fontSize: "14px",
-                                            transition: "all 0.2s ease"
-                                        }}
-                                        title={segments.length <= 1 ? t.needAtLeastOneSegment : t.deleteSegment}
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
+                        <thead>
+                            <tr style={{ backgroundColor: "var(--bg-tertiary, #2d2d2d)" }}>
+                                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid var(--border, #444)", width: "200px" }}>{t.segmentNote}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.startTime}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "160px" }}>{t.endTime}</th>
+                                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid var(--border, #444)", width: "80px" }}>{t.action}</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {segments.map((segment) => (
+                                <tr key={segment.id} style={{ borderBottom: "1px solid var(--border, #333)" }}>
+                                    <td style={{ padding: "8px 4px 8px 12px", width: "200px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.note}
+                                            onChange={(e) => updateSegment(segment.id, "note", e.target.value)}
+                                            placeholder={t.segmentNote}
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.note ? "var(--text-primary, #fff)" : "#888"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.startTime}
+                                            onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
+                                            placeholder="00:00:00.000"
+                                            style={{
+                                                width: "130px",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.startTime ? "var(--text-primary, #fff)" : "#888",
+                                                textAlign: "center",
+                                                fontFamily: "monospace"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 4px", textAlign: "center", width: "140px" }}>
+                                        <input
+                                            type="text"
+                                            value={segment.endTime}
+                                            onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
+                                            placeholder="00:00:00.000"
+                                            style={{
+                                                width: "130px",
+                                                padding: "8px",
+                                                border: "1px solid var(--border, #444)",
+                                                borderRadius: "8px",
+                                                backgroundColor: "var(--bg-primary, #121212)",
+                                                color: segment.endTime ? "var(--text-primary, #fff)" : "#888",
+                                                textAlign: "center",
+                                                fontFamily: "monospace"
+                                            }}
+                                        />
+                                    </td>
+                                    <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                                        <button
+                                            onClick={() => deleteSegment(segment.id)}
+                                            disabled={segments.length <= 1}
+                                            style={{
+                                                padding: "8px 16px",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                backgroundColor: segments.length <= 1 ? "#555" : "#e74c3c",
+                                                color: "#fff",
+                                                cursor: segments.length <= 1 ? "not-allowed" : "pointer",
+                                                fontWeight: "bold",
+                                                fontSize: "14px",
+                                                transition: "all 0.2s ease"
+                                            }}
+                                            title={segments.length <= 1 ? t.needAtLeastOneSegment : t.deleteSegment}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

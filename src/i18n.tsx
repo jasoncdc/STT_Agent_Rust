@@ -109,6 +109,8 @@ export const translations = {
     selectAll: "全選",
     deselectAll: "取消全選",
     silenceSelected: "對選取項目消音",
+    batchTranscription: "批次轉錄",
+    startBatch: "開始批次轉錄",
     // ReportPage
     reportTitle: "報告生成",
     reportDescription: "使用 Gemini AI 分析音檔並產出逐字稿報告。",
@@ -244,6 +246,8 @@ export const translations = {
     selectAll: "Select All",
     deselectAll: "Deselect All",
     silenceSelected: "Silence Selected",
+    batchTranscription: "Batch Transcription",
+    startBatch: "Start Batch Transcription",
     // ReportPage
     reportTitle: "Report Generation",
     reportDescription: "Use Gemini AI to analyze audio files and generate transcript reports.",

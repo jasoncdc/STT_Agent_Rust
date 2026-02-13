@@ -31,21 +31,78 @@ export function SilenceAutoPage() {
     const [history, setHistory] = useState<string[]>([]);
     const [isConnected, setIsConnected] = useState<boolean | null>(null); // null=unknown, true=connected, false=disconnected
     const [isConnecting, setIsConnecting] = useState(false);
-    const [transcribing, setTranscribing] = useState(false);
+
     const [logs, setLogs] = useState<string[]>([]);
     const [results, setResults] = useState<TranscribeResponse | null>(null);
     const [highlightedSegment, setHighlightedSegment] = useState<Segment | null>(null);
 
     // Audio Player & File Selection State
     const [folderPath, setFolderPath] = useState("");
-    const [fileList, setFileList] = useState<string[]>([]);
+
     const [selectedFile, setSelectedFile] = useState("");
     const [isPlaying, setIsPlaying] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSeeking, setIsSeeking] = useState(false);
+
+    // Ref to track current time for event handlers without re-binding
+    const currentTimeRef = useRef(0);
+    useEffect(() => { currentTimeRef.current = currentTime; }, [currentTime]);
+
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+
+    // Batch Processing State
+    const [batchFolder, setBatchFolder] = useState("");
+    const [batchFiles, setBatchFiles] = useState<string[]>([]);
+    const [batchSelected, setBatchSelected] = useState<Set<string>>(new Set());
+    const [batchProgress, setBatchProgress] = useState<{ [key: string]: 'pending' | 'processing' | 'done' | 'error' }>({});
+    const [isBatchRunning, setIsBatchRunning] = useState(false);
+
+    // Load transcription result if exists
+    async function getJsonPath(fullPath: string) {
+        // fullPath: .../02_split/filename.mp3
+        // target: .../silence_reg/filename.mp3.json
+        // We need to construct this carefully.
+
+        // Assumption: folderPath is .../02_split or similar deep path inside project
+        // But user said "same level as 01_convert". 
+        // If we are in "CurrentProject/02_split", we want "CurrentProject/silence_reg".
+
+        // Let's try to find project root from folderPath if possible, or use the checked out project root.
+        // We can get current project root from backend.
+
+        try {
+            const currentProject = await invoke<string | null>("get_current_project_cmd");
+            if (currentProject && fullPath.startsWith(currentProject)) {
+                const fileName = fullPath.split(/[\\/]/).pop();
+                return `${currentProject}/.silence_reg/${fileName}.json`.replace(/\\/g, "/");
+            }
+        } catch (e) { console.error(e); }
+
+        // Fallback or if not in project (shouldn't happen with current flow)
+        return fullPath + ".json";
+    }
+
+    async function tryLoadTranscript(fullPath: string) {
+        try {
+            const jsonPath = await getJsonPath(fullPath);
+            const exists = await invoke<boolean>("check_file_exists", { path: jsonPath });
+            if (exists) {
+                const content = await invoke<string>("read_text_file", { path: jsonPath });
+                const data = JSON.parse(content);
+                setResults(data);
+                addToLog(`${t.loaded}: Transcript found.`);
+            } else {
+                setResults(null);
+                // addToLog("No transcript found for this file.");
+            }
+        } catch (e) {
+            console.error(e);
+            setResults(null);
+        }
+    }
+
 
     async function handleSilenceSelected() {
         if (selectedIndices.size === 0 || !results || !folderPath || !selectedFile) return;
@@ -68,6 +125,12 @@ export function SilenceAutoPage() {
                 segments: segmentsToSilence
             });
             addToLog(`${t.success || "Success"}: ${result}`);
+
+            // Show success notification
+            alert(`${t.success || "Success"}: Silenced ${segmentsToSilence.length} segments.`);
+
+            // Optionally reload to reflect changes? (Not requested but good practice if file changed)
+            // handleLoadTrack(folderPath, selectedFile); 
         } catch (err) {
             addToLog(`${t.error}: ${err}`);
         }
@@ -114,19 +177,47 @@ export function SilenceAutoPage() {
     // Keyboard controls
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
+            // Only handle if audio is loaded and not typing in an input
             if (!isLoaded) return;
-            // Ignore if typing in an input
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-            if (e.code === "Space") {
-                e.preventDefault();
-                await handlePlayPause();
+            const SKIP_SECONDS = 5;
+
+            switch (e.key) {
+                case "ArrowLeft":
+                    e.preventDefault();
+                    // Use ref to get fresh time
+                    const newTimeBack = Math.max(0, currentTimeRef.current - SKIP_SECONDS);
+                    setCurrentTime(newTimeBack); // Optimistic update
+                    try {
+                        await invoke("seek", { seconds: newTimeBack });
+                    } catch (err) {
+                        console.error("Seek error:", err);
+                    }
+                    break;
+
+                case "ArrowRight":
+                    e.preventDefault();
+                    // Use ref to get fresh time
+                    const newTimeForward = Math.min(duration, currentTimeRef.current + SKIP_SECONDS);
+                    setCurrentTime(newTimeForward); // Optimistic update
+                    try {
+                        await invoke("seek", { seconds: newTimeForward });
+                    } catch (err) {
+                        console.error("Seek error:", err);
+                    }
+                    break;
+
+                case " ": // Space bar
+                    e.preventDefault();
+                    await handlePlayPause();
+                    break;
             }
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isLoaded, isPlaying]);
+    }, [isLoaded, duration]); // Removed isPlaying to avoid re-bind, added duration
 
     // Custom dropdown state
     const [showHistory, setShowHistory] = useState(false);
@@ -155,12 +246,18 @@ export function SilenceAutoPage() {
     }, []);
 
     // Helper functions for Audio Player
-    async function handleSelectFolder() {
+    // handleSelectFolder and loadFileList removed as they are replaced by batch logic
+
+
+    // Correct implementation of helper
+    async function selectBatchFolderAction() {
         try {
             let defaultPath = "02_split";
             const currentProject = await invoke<string | null>("get_current_project_cmd");
             if (currentProject) {
-                defaultPath = currentProject + "/02_split";
+                // Ensure proper path separator handling
+                const separator = currentProject.includes("\\") ? "\\" : "/";
+                defaultPath = `${currentProject}${separator}02_split`;
             }
 
             const selected = await open({
@@ -170,38 +267,116 @@ export function SilenceAutoPage() {
             });
 
             if (selected && typeof selected === "string") {
-                setFolderPath(selected);
-                loadFileList(selected);
+                setBatchFolder(selected);
+                setFolderPath(selected); // Keep this for player compatibility? Or separate? 
+                // User wants player dropdown to only show selected files.
+                // So player's "fileList" should be derived from "batchSelected".
+
+                const files = await invoke<string[]>("list_audio_files", { dirPath: selected });
+                setBatchFiles(files);
+                setBatchSelected(new Set(files)); // Default select all
+                setBatchProgress({});
             }
         } catch (err) {
             addToLog(`${t.error}: ${err}`);
         }
     }
 
-    async function loadFileList(path: string) {
-        try {
-            const files = await invoke<string[]>("list_audio_files", { dirPath: path });
-            setFileList(files);
-            if (files.length > 0) {
-                setSelectedFile(files[0]);
-                handleLoadTrack(path, files[0]);
-            } else {
-                setSelectedFile("");
-                setIsLoaded(false);
-                addToLog(`${path} (No audio files found)`);
+    async function startBatchTranscription() {
+        if (!isConnected) {
+            alert(t.serverOffline);
+            return;
+        }
+        if (batchSelected.size === 0) return;
+
+        setIsBatchRunning(true);
+        const filesToProcess = Array.from(batchSelected);
+
+        // Initialize progress
+        const initialProgress = { ...batchProgress };
+        filesToProcess.forEach(f => initialProgress[f] = 'pending');
+        setBatchProgress(initialProgress);
+
+        for (const filename of filesToProcess) {
+            // Check if cancelled? (Optional)
+
+            setBatchProgress(prev => ({ ...prev, [filename]: 'processing' }));
+            const fullPath = `${batchFolder}/${filename}`.replace(/\\/g, "/");
+
+            try {
+                // Scroll into view logic could go here
+                addToLog(`Transcribing ${filename}...`);
+
+                const res: TranscribeResponse = await invoke('transcribe_audio', {
+                    ip: ip,
+                    filePath: fullPath
+                });
+
+                // Save JSON
+                const jsonPath = await getJsonPath(fullPath);
+
+                // Ensure directory exists
+                const jsonDir = jsonPath.substring(0, jsonPath.lastIndexOf("/"));
+                await invoke("ensure_dir_exists", { path: jsonDir });
+
+                await invoke('save_text_file', {
+                    path: jsonPath,
+                    content: JSON.stringify(res, null, 2)
+                });
+
+                setBatchProgress(prev => ({ ...prev, [filename]: 'done' }));
+                addToLog(`Saved transcript for ${filename}`);
+
+            } catch (e) {
+                console.error(e);
+                setBatchProgress(prev => ({ ...prev, [filename]: 'error' }));
+                addToLog(`Error ${filename}: ${e}`);
             }
-        } catch (err) {
-            addToLog(`${t.error}: ${err}`);
+        }
+        setIsBatchRunning(false);
+
+        // Auto-load the first file's result into the player if not playing
+        if (filesToProcess.length > 0 && !isPlaying && !selectedFile) {
+            handleFileChange(filesToProcess[0]);
         }
     }
+
+    // loadFileList removed
+
 
     async function handleFileChange(filename: string) {
+        if (filename === selectedFile) return;
         setSelectedFile(filename);
-        handleLoadTrack(folderPath, filename);
+
+        // Load audio
+        handleLoadTrack(batchFolder || folderPath, filename);
+
+        // Clear selection state
+        setSelectedIndices(new Set());
+        setHighlightedSegment(null);
+
+        // Try load transcript
+        const fullPath = `${batchFolder || folderPath}/${filename}`.replace(/\\/g, "/");
+        tryLoadTranscript(fullPath);
     }
+
+    // Track last loaded file to prevent duplicate logs/loads
+    const lastLoadedRef = useRef<{ file: string; time: number } | null>(null);
 
     async function handleLoadTrack(folder: string, filename: string) {
         if (!folder || !filename) return;
+
+        // Prevent duplicate load if same file loaded within 2 seconds
+        const now = Date.now();
+        if (
+            lastLoadedRef.current &&
+            lastLoadedRef.current.file === filename &&
+            now - lastLoadedRef.current.time < 2000
+        ) {
+            return;
+        }
+        lastLoadedRef.current = { file: filename, time: now };
+
         const fullPath = `${folder}/${filename}`.replace(/\\/g, "/");
 
         try {
@@ -295,37 +470,8 @@ export function SilenceAutoPage() {
         addToLog("Disconnected manually.");
     };
 
-    const handleTranscribe = async () => {
-        if (!isConnected) {
-            alert(t.serverOffline);
-            return;
-        }
+    // handleTranscribe removed
 
-        if (!folderPath || !selectedFile) {
-            alert(t.errorLoadAudio || "Please select an audio file first.");
-            return;
-        }
-
-        const fullPath = `${folderPath}/${selectedFile}`.replace(/\\/g, "/");
-
-        try {
-            setTranscribing(true);
-            addToLog(`${t.processingAudio} ${selectedFile}...`);
-
-            const res: TranscribeResponse = await invoke('transcribe_audio', {
-                ip: ip,
-                filePath: fullPath
-            });
-
-            setResults(res);
-            addToLog(`${t.results}: Found ${res.segments.length} segments.`);
-        } catch (e) {
-            addToLog(`${t.error}: ${e}`);
-            alert(`${t.error}: ${e}`);
-        } finally {
-            setTranscribing(false);
-        }
-    };
 
     return (
         <div className="container" style={{ padding: '20px', color: 'var(--text-primary)' }}>
@@ -460,107 +606,182 @@ export function SilenceAutoPage() {
 
             {/* Main Action Area */}
             {/* Main Action Area */}
+            {/* Main Action Area */}
             {isConnected && (
-                <div style={{ marginTop: '20px' }} className="audio-player-wrapper">
-                    <div className="audio-controls-container">
-                        <h3 style={{ margin: '0 0 16px 0' }}>🎵 {t.audioPlayer || "Audio Player"}</h3>
+                <div style={{ marginTop: '20px' }}>
 
-                        {/* Folder & File Selection */}
-                        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-                            <button className="btn btn-secondary" onClick={handleSelectFolder}>
-                                📂 {folderPath ? t.changeFolder : t.selectAudioFolder || "Select Folder"}
+                    {/* Batch Selection Section */}
+                    <div className="batch-section" style={{
+                        background: 'var(--bg-secondary)',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        marginBottom: '20px'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <h3 style={{ margin: 0 }}>📂 {t.batchTranscription || "Batch Transcription"}</h3>
+                            <button className="btn btn-secondary" onClick={selectBatchFolderAction} disabled={isBatchRunning}>
+                                {batchFolder ? t.changeFolder : t.selectAudioFolder || "Select Folder"}
                             </button>
-                            {folderPath && (
-                                <select
-                                    className="custom-file-select"
-                                    style={{ flex: 1 }}
-                                    value={selectedFile}
-                                    onChange={(e) => handleFileChange(e.target.value)}
-                                >
-                                    {fileList.map((f) => (
-                                        <option key={f} value={f}>{f}</option>
-                                    ))}
-                                </select>
-                            )}
                         </div>
 
-                        {/* Audio Player Controls */}
-                        {isLoaded && (
-                            <div className="player-inner-box">
-                                <div className="player-top-row">
-                                    <div className="track-info">
-                                        <span className="icon">🎵</span>
-                                        <span className="track-name">{selectedFile}</span>
+                        {batchFolder && (
+                            <div style={{ marginBottom: '16px' }}>
+                                <div style={{
+                                    maxHeight: '200px',
+                                    overflowY: 'auto',
+                                    background: 'var(--bg-tertiary)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '4px',
+                                    padding: '8px'
+                                }}>
+                                    {/* Select All Header */}
+                                    <div style={{ paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '8px' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={batchSelected.size === batchFiles.length && batchFiles.length > 0}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) setBatchSelected(new Set(batchFiles));
+                                                    else setBatchSelected(new Set());
+                                                }}
+                                                disabled={isBatchRunning}
+                                                style={{ marginRight: '8px' }}
+                                            />
+                                            <strong>{t.selectAll} ({batchSelected.size}/{batchFiles.length})</strong>
+                                        </label>
                                     </div>
+
+                                    {/* File List */}
+                                    {batchFiles.map(f => (
+                                        <div key={f} style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flex: 1 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={batchSelected.has(f)}
+                                                    onChange={(e) => {
+                                                        const newSet = new Set(batchSelected);
+                                                        if (e.target.checked) newSet.add(f);
+                                                        else newSet.delete(f);
+                                                        setBatchSelected(newSet);
+                                                    }}
+                                                    disabled={isBatchRunning}
+                                                    style={{ marginRight: '8px' }}
+                                                />
+                                                <span style={{ flex: 1 }}>{f}</span>
+                                            </label>
+
+                                            {/* Status Badge */}
+                                            {batchProgress[f] && (
+                                                <span style={{
+                                                    fontSize: '0.8em',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    background: batchProgress[f] === 'done' ? '#4caf50' :
+                                                        batchProgress[f] === 'error' ? '#f44336' :
+                                                            batchProgress[f] === 'processing' ? '#ff9800' : '#888',
+                                                    color: '#fff'
+                                                }}>
+                                                    {batchProgress[f]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="player-main-row">
-                                    <button className="play-btn" onClick={handlePlayPause}>
-                                        {isPlaying ? (
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
-                                            </svg>
-                                        ) : (
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                                                <path d="M8 5v14l11-7z"></path>
-                                            </svg>
-                                        )}
-                                    </button>
-
-                                    <div className="seek-container">
-                                        <span className="time-display">{formatTime(currentTime)}</span>
-                                        <input
-                                            type="range"
-                                            min={0}
-                                            max={duration || 100}
-                                            step={0.1}
-                                            value={currentTime}
-                                            onChange={(e) => {
-                                                setIsSeeking(true);
-                                                setCurrentTime(parseFloat(e.target.value));
-                                            }}
-                                            onMouseUp={(e) => {
-                                                const target = e.target as HTMLInputElement;
-                                                handleSeek(parseFloat(target.value));
-                                                setIsSeeking(false);
-                                                target.blur();
-                                            }}
-                                            className="custom-range"
-                                            style={{
-                                                background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
-                                            }}
-                                        />
-                                        <span className="time-display total">{formatTime(duration)}</span>
-                                    </div>
-                                </div>
+                                <button
+                                    className="btn btn-accent"
+                                    style={{ marginTop: '12px', width: '100%' }}
+                                    onClick={startBatchTranscription}
+                                    disabled={isBatchRunning || batchSelected.size === 0}
+                                >
+                                    {isBatchRunning ? (
+                                        <><span className="loading-spinner"></span> {t.processing}...</>
+                                    ) : (
+                                        <>🚀 {t.startBatch || "Start Batch Transcription"}</>
+                                    )}
+                                </button>
                             </div>
                         )}
+                    </div>
 
-                        {/* Transcribe Button */}
-                        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                            <button
-                                className="btn btn-accent"
-                                style={{
-                                    padding: '12px 30px',
-                                    fontSize: '1.1em',
-                                    width: '100%',
-                                    maxWidth: '300px',
-                                    opacity: (!selectedFile || transcribing) ? 0.6 : 1,
-                                    cursor: (!selectedFile || transcribing) ? 'not-allowed' : 'pointer'
-                                }}
-                                onClick={handleTranscribe}
-                                disabled={!selectedFile || transcribing}
-                            >
-                                {transcribing ? (
-                                    <>
-                                        <span className="loading-spinner" style={{ marginRight: '8px' }}></span>
-                                        {t.processingAudio}
-                                    </>
-                                ) : (
-                                    <>🚀 {t.startTranscribe || "Start Transcribing"}</>
+                    <div className="audio-player-wrapper">
+                        <div className="audio-controls-container">
+                            <h3 style={{ margin: '0 0 16px 0' }}>🎵 {t.audioPlayer || "Audio Player"}</h3>
+
+                            {/* Dropdown - Only show selected items */}
+                            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+                                {batchSelected.size > 0 && (
+                                    <select
+                                        className="custom-file-select"
+                                        style={{ flex: 1 }}
+                                        value={selectedFile}
+                                        onChange={(e) => handleFileChange(e.target.value)}
+                                    >
+                                        <option value="" disabled>Select a file to review</option>
+                                        {Array.from(batchSelected).map((f) => (
+                                            <option key={f} value={f}>{f} {batchProgress[f] === 'done' ? '✅' : ''}</option>
+                                        ))}
+                                    </select>
                                 )}
-                            </button>
+                                {batchSelected.size === 0 && <div style={{ color: '#888' }}>Please select files in the section above first.</div>}
+                            </div>
+
+                            {/* Audio Player Controls */}
+                            {isLoaded && (
+                                <div className="player-inner-box">
+                                    <div className="player-top-row">
+                                        <div className="track-info">
+                                            <span className="icon">🎵</span>
+                                            <span className="track-name">{selectedFile}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="player-main-row">
+                                        <button className="play-btn" onClick={handlePlayPause}>
+                                            {isPlaying ? (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                                                </svg>
+                                            ) : (
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                                    <path d="M8 5v14l11-7z"></path>
+                                                </svg>
+                                            )}
+                                        </button>
+
+                                        <div className="seek-container">
+                                            <span className="time-display">{formatTime(currentTime)}</span>
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={duration || 100}
+                                                step={0.1}
+                                                value={currentTime}
+                                                onChange={(e) => {
+                                                    setIsSeeking(true);
+                                                    setCurrentTime(parseFloat(e.target.value));
+                                                }}
+                                                onMouseUp={(e) => {
+                                                    const target = e.target as HTMLInputElement;
+                                                    handleSeek(parseFloat(target.value));
+                                                    setIsSeeking(false);
+                                                    target.blur();
+                                                }}
+                                                className="custom-range"
+                                                style={{
+                                                    background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
+                                                }}
+                                            />
+                                            <span className="time-display total">{formatTime(duration)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
+
+
+                        {/* Remove old Transcribe Button from here */}
                     </div>
                 </div>
             )}
