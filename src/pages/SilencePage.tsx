@@ -86,6 +86,15 @@ export function SilencePage() {
     ]);
     const [nextId, setNextId] = useState(2);
 
+    // Hover time for progress bar
+    const [hoverTime, setHoverTime] = useState<number | null>(null);
+    const [hoverPosition, setHoverPosition] = useState<number>(0);
+
+    // Marker states for right-click segment creation
+    const [markPoint1, setMarkPoint1] = useState<number | null>(null);
+    const [markPoint2, setMarkPoint2] = useState<number | null>(null);
+    const [segmentNameInput, setSegmentNameInput] = useState("");
+
     const positionIntervalRef = useRef<number | null>(null);
 
     // Sync playback state
@@ -201,6 +210,12 @@ export function SilencePage() {
         const fullPath = `${folder}/${filename}`.replace(/\\/g, "/");
 
         setLoading(true);
+
+        // Reset segments to default state when switching audio
+        setSegments([{ id: 1, note: "", startTime: "", endTime: "" }]);
+        setNextId(2);
+        handleCancelMark();
+
         try {
             const durationStr = await invoke<string>("load_track", { path: fullPath });
             const dur = parseFloat(durationStr);
@@ -244,6 +259,69 @@ export function SilencePage() {
         const ms = Math.floor((seconds % 1) * 100);
         return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
     }
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLInputElement>) => {
+        if (!duration) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        let percent = (e.clientX - rect.left) / rect.width;
+        percent = Math.max(0, Math.min(1, percent));
+        setHoverTime(percent * duration);
+        setHoverPosition(percent * 100);
+    };
+
+    const handleMouseLeave = () => {
+        setHoverTime(null);
+    };
+
+    const handleContextMenu = (e: React.MouseEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        if (!duration) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        let percent = (e.clientX - rect.left) / rect.width;
+        percent = Math.max(0, Math.min(1, percent));
+        const clickedTime = percent * duration;
+
+        if (markPoint1 === null) {
+            // First click
+            setMarkPoint1(clickedTime);
+            setMarkPoint2(null);
+            setSegmentNameInput("");
+        } else if (markPoint2 === null) {
+            // Second click
+            setMarkPoint2(clickedTime);
+            // Autofocus will be handled by a ref on the input when it renders
+        } else {
+            // Third click resets and starts over
+            setMarkPoint1(clickedTime);
+            setMarkPoint2(null);
+            setSegmentNameInput("");
+        }
+    };
+
+    const handleCancelMark = () => {
+        setMarkPoint1(null);
+        setMarkPoint2(null);
+        setSegmentNameInput("");
+    };
+
+    const handleConfirmMark = () => {
+        if (markPoint1 === null || markPoint2 === null) return;
+
+        const start = Math.min(markPoint1, markPoint2);
+        const end = Math.max(markPoint1, markPoint2);
+
+        const newSegment: Segment = {
+            id: nextId,
+            note: segmentNameInput.trim(), // SilencePage uses 'note'
+            startTime: formatTime(start),
+            endTime: formatTime(end)
+        };
+
+        setSegments([...segments, newSegment]);
+        setNextId(nextId + 1);
+        handleCancelMark();
+    };
 
     // Segment operations
     function addSegment() {
@@ -397,33 +475,117 @@ export function SilencePage() {
 
                                 <div className="seek-container">
                                     <span className="time-display">{formatTime(currentTime)}</span>
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={duration || 100}
-                                        step={0.1}
-                                        value={currentTime}
-                                        onChange={(e) => {
-                                            setIsSeeking(true);
-                                            setCurrentTime(parseFloat(e.target.value));
-                                        }}
-                                        onMouseUp={(e) => {
-                                            const target = e.target as HTMLInputElement;
-                                            handleSeek(parseFloat(target.value));
-                                            setIsSeeking(false);
-                                            target.blur();
-                                        }}
-                                        onTouchEnd={(e) => {
-                                            const target = e.target as HTMLInputElement;
-                                            handleSeek(parseFloat(target.value));
-                                            setIsSeeking(false);
-                                            target.blur();
-                                        }}
-                                        className="custom-range"
-                                        style={{
-                                            background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
-                                        }}
-                                    />
+                                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                                        {/* Hover Tooltip */}
+                                        {hoverTime !== null && (
+                                            <div
+                                                className="progress-tooltip"
+                                                style={{ left: `${hoverPosition}%` }}
+                                            >
+                                                {formatTime(hoverTime)}
+                                            </div>
+                                        )}
+
+                                        {/* Mark Point 1 (Yellow) */}
+                                        {markPoint1 !== null && duration > 0 && (
+                                            <div
+                                                className="mark-line-primary"
+                                                style={{ left: `${(markPoint1 / duration) * 100}%` }}
+                                            />
+                                        )}
+
+                                        {/* Mark Point 2 (Red) */}
+                                        {markPoint2 !== null && duration > 0 && (
+                                            <div
+                                                className="mark-line-secondary"
+                                                style={{ left: `${(markPoint2 / duration) * 100}%` }}
+                                            />
+                                        )}
+
+                                        {/* Mark Region Highlight */}
+                                        {markPoint1 !== null && markPoint2 !== null && duration > 0 && (
+                                            <div
+                                                className="mark-region-highlight"
+                                                style={{
+                                                    left: `${(Math.min(markPoint1, markPoint2) / duration) * 100}%`,
+                                                    width: `${(Math.abs(markPoint2 - markPoint1) / duration) * 100}%`
+                                                }}
+                                            />
+                                        )}
+
+                                        {/* Floating Input Popup */}
+                                        {markPoint1 !== null && markPoint2 !== null && duration > 0 && (
+                                            <div
+                                                className="segment-input-popup"
+                                                style={{
+                                                    left: `${(Math.min(markPoint1, markPoint2) + Math.abs(markPoint2 - markPoint1) / 2) / duration * 100}%`
+                                                }}
+                                            >
+                                                <div className="popup-title">{t.addSegment}</div>
+                                                <div className="popup-times">
+                                                    {formatTime(Math.min(markPoint1, markPoint2))} - {formatTime(Math.max(markPoint1, markPoint2))}
+                                                </div>
+                                                <input
+                                                    autoFocus
+                                                    type="text"
+                                                    className="popup-input"
+                                                    placeholder={t.segmentNote}
+                                                    value={segmentNameInput}
+                                                    onChange={(e) => setSegmentNameInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        // Stop propagation so global shortcuts don't fire
+                                                        e.stopPropagation();
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleConfirmMark();
+                                                        } else if (e.key === 'Escape') {
+                                                            e.preventDefault();
+                                                            handleCancelMark();
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="popup-actions">
+                                                    <button className="btn-small cancel" onClick={handleCancelMark}>
+                                                        ✕
+                                                    </button>
+                                                    <button className="btn-small confirm" onClick={handleConfirmMark}>
+                                                        ✓
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={duration || 100}
+                                            step={0.1}
+                                            value={currentTime}
+                                            onChange={(e) => {
+                                                setIsSeeking(true);
+                                                setCurrentTime(parseFloat(e.target.value));
+                                            }}
+                                            onMouseUp={(e) => {
+                                                const target = e.target as HTMLInputElement;
+                                                handleSeek(parseFloat(target.value));
+                                                setIsSeeking(false);
+                                                target.blur();
+                                            }}
+                                            onTouchEnd={(e) => {
+                                                const target = e.target as HTMLInputElement;
+                                                handleSeek(parseFloat(target.value));
+                                                setIsSeeking(false);
+                                                target.blur();
+                                            }}
+                                            onMouseMove={handleMouseMove}
+                                            onMouseLeave={handleMouseLeave}
+                                            onContextMenu={handleContextMenu}
+                                            className="custom-range"
+                                            style={{
+                                                background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) ${(currentTime / (duration || 1)) * 100}%, var(--border-strong) 100%)`
+                                            }}
+                                        />
+                                    </div>
                                     <span className="time-display total">{formatTime(duration)}</span>
                                 </div>
                             </div>
