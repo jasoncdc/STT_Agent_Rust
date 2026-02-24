@@ -97,6 +97,18 @@ export function SilencePage() {
 
     const positionIntervalRef = useRef<number | null>(null);
 
+    // Workaround for Numpad double input bug (can happen on Windows webview2)
+    const lastKeyRef = useRef<{ key: string, time: number }>({ key: '', time: 0 });
+    const handleNumpadWorkaround = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.code && e.code.startsWith('Numpad')) {
+            const now = e.timeStamp;
+            if (e.key === lastKeyRef.current.key && now - lastKeyRef.current.time < 50) {
+                e.preventDefault();
+            }
+            lastKeyRef.current = { key: e.key, time: now };
+        }
+    };
+
     // Sync playback state
     useEffect(() => {
         if (isPlaying && !isSeeking) {
@@ -647,6 +659,7 @@ export function SilencePage() {
                                             type="text"
                                             value={segment.startTime}
                                             onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
+                                            onKeyDown={handleNumpadWorkaround}
                                             placeholder="00:00:00.000"
                                             style={{
                                                 width: "130px",
@@ -665,6 +678,7 @@ export function SilencePage() {
                                             type="text"
                                             value={segment.endTime}
                                             onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
+                                            onKeyDown={handleNumpadWorkaround}
                                             placeholder="00:00:00.000"
                                             style={{
                                                 width: "130px",

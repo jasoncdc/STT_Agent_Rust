@@ -72,6 +72,19 @@ export function SplitPage() {
 
     const positionIntervalRef = useRef<number | null>(null);
 
+    // Workaround for Numpad double input bug (can happen on Windows webview2)
+    const lastKeyRef = useRef<{ key: string, time: number }>({ key: '', time: 0 });
+    const handleNumpadWorkaround = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.code && e.code.startsWith('Numpad')) {
+            const now = e.timeStamp;
+            // Prevent if same key is pressed within 50ms
+            if (e.key === lastKeyRef.current.key && now - lastKeyRef.current.time < 50) {
+                e.preventDefault();
+            }
+            lastKeyRef.current = { key: e.key, time: now };
+        }
+    };
+
     // Sync with backend state on mount (in case audio is already loaded)
     useEffect(() => {
         async function syncWithBackend() {
@@ -631,6 +644,7 @@ export function SplitPage() {
                                             type="text"
                                             value={segment.startTime}
                                             onChange={(e) => updateSegment(segment.id, "startTime", e.target.value)}
+                                            onKeyDown={handleNumpadWorkaround}
                                             placeholder="00:00:00"
                                             style={{
                                                 width: "140px",
@@ -649,6 +663,7 @@ export function SplitPage() {
                                             type="text"
                                             value={segment.endTime}
                                             onChange={(e) => updateSegment(segment.id, "endTime", e.target.value)}
+                                            onKeyDown={handleNumpadWorkaround}
                                             placeholder="00:00:00"
                                             style={{
                                                 width: "140px",

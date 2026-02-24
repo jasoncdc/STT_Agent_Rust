@@ -313,7 +313,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.1.7
+                <strong>{t.version}:</strong> 1.1.8
               </p>
               <p>{t.description}</p>
             </div>

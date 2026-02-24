@@ -111,8 +111,8 @@ impl ReportAgent {
         model_name: Option<String>,
         custom_prompt: Option<String>,
     ) -> Result<String, String> {
-        // 0. 決定模型 (預設 gemini-3-pro-preview)
-        let model = model_name.unwrap_or_else(|| "gemini-3-pro-preview".to_string());
+        // 0. 決定模型 (預設 gemini-3.1-pro-preview)
+        let model = model_name.unwrap_or_else(|| "gemini-3.1-pro-preview".to_string());
         println!("使用模型: {}", model);
         // 1. 列出音檔
         let audio_extensions = ["mp3", "wav", "aac", "flac", "ogg", "m4a"];

@@ -16,7 +16,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
     const [loading, setLoading] = useState(false);
     // const [converting, setConverting] = useState(false);
     // const [reportPath, setReportPath] = useState("");
-    const [modelName, setModelName] = useState("gemini-3-pro-preview");
+    const [modelName, setModelName] = useState("gemini-3.1-pro-preview");
     const [customPromptPath, setCustomPromptPath] = useState("");
     const [showPromptModal, setShowPromptModal] = useState(false);
     const [defaultPrompt, setDefaultPrompt] = useState("");
@@ -246,7 +246,8 @@ export function ReportPage({ isActive }: ReportPageProps) {
                     value={modelName}
                     onChange={(e) => setModelName(e.target.value)}
                 >
-                    <option value="gemini-3-pro-preview">{`gemini-3-pro-preview ${t.defaultSuffix}`}</option>
+                    <option value="gemini-3.1-pro-preview">{`gemini-3.1-pro-preview ${t.defaultSuffix}`}</option>
+                    <option value="gemini-3-pro-preview">gemini-3-pro-preview</option>
                     <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
                     <option value="gemini-2.5-pro">gemini-2.5-pro</option>
                     <option value="gemini-2.5-flash">gemini-2.5-flash</option>
