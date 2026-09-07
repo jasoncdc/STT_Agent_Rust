@@ -33,10 +33,14 @@ jobs:
       # 升級版本時，請先在本機下載新檔計算 SHA256，再同步更新這裡的雜湊值。
       - name: Bundle FFmpeg Sidecar
         run: |
-          $ffmpegVersion = "8.0.1"
-          $ffmpegZip = "ffmpeg-${ffmpegVersion}-essentials_build.zip"
-          $ffmpegUrl = "https://www.gyan.dev/ffmpeg/builds/packages/${ffmpegZip}"
-          $ffmpegSha256 = "e2aaeaa0fdbc397d4794828086424d4aaa2102cef1fb6874f6ffd29c0b88b673"
+          # 來源改用 BtbN/FFmpeg-Builds 的「日期 tag」release。
+          # gyan.dev 只保留最新幾版，舊版套件會被刪除（8.0.1 就是這樣變成 404 的），
+          # 而 GitHub release 的 asset 一旦發布就不會變動，適合固定版本 + 雜湊驗證。
+          # 升級時：換掉 tag 與檔名，重新下載計算 SHA256 後更新下方雜湊值。
+          $ffmpegTag = "autobuild-2026-09-06-13-06"
+          $ffmpegZip = "ffmpeg-n8.1.2-50-g1a748fe2cd-win64-gpl-8.1.zip"
+          $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/${ffmpegTag}/${ffmpegZip}"
+          $ffmpegSha256 = "e254995d48e6e9e88f5a05eb886a75e9ac33d7c6bb2e8a301e2eb65848a2d489"
 
           Invoke-WebRequest -Uri $ffmpegUrl -OutFile $ffmpegZip
 
