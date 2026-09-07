@@ -1,0 +1,9 @@
+1.更新版本號：
+npm run bump-version -- 2.0.0
+
+2.推上git：
+npm run bump-version -- 2.0.0
+git add -A
+git commit -m "版本v2.0.0發布 ..."
+git tag v2.0.0
+git push && git push --tags

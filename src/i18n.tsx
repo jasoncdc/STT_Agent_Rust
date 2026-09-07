@@ -36,6 +36,7 @@ export const translations = {
     split: "切割",
     silence: "消音",
     report: "報告",
+    adjust: "報告調整",
     otherToolsSection: "其他工具",
     mediaSplit: "MP4 切割",
     // About Dialog
@@ -147,6 +148,23 @@ export const translations = {
     defaultSuffix: "(預設)",
     viewPrompt: "查看 Prompt 範例",
     defaultPromptTitle: "預設 Prompt 內容",
+    caseFormatLabel: "使用個案格式",
+    caseFormatOnHint: "段落標頭：【個案來源：1段落一.mp3】　標題：醫學會議精煉報告",
+    caseFormatOffHint: "段落標頭：1段落一　標題：逐字稿報告",
+    // Adjust Page
+    adjustTitle: "報告調整",
+    adjustDescription: "選擇任一份 .md 報告，以自訂 Prompt 交由 Gemini 重新整理，輸出至 05_adjust（檔名後加上 _adj）。",
+    adjustCloudNotice:
+      "調整報告時，報告內容會上傳至 Google Gemini 雲端服務進行處理（處理完成後會自動刪除雲端檔案）。請勿上傳含有機敏或不宜外流內容的報告。",
+    adjustSource: "來源報告 (.md)",
+    adjustSourcePlaceholder: "請選擇要調整的 .md 報告檔案...",
+    adjustPrompt: "調整 Prompt (必填，.txt)",
+    adjustPromptPlaceholder: "請選擇 .txt Prompt 檔案（必填）...",
+    runAdjust: "調整報告 (自動產出 Word 檔)",
+    adjusting: "調整中...",
+    processingAdjust: "正在調整報告，這可能需要幾分鐘...",
+    errorAdjustSource: "請先選擇要調整的報告檔案 (.md)",
+    errorAdjustPrompt: "請先選擇調整用的 Prompt 檔案 (.txt)",
   },
   en: {
     // App Menu
@@ -181,6 +199,7 @@ export const translations = {
     split: "Split",
     silence: "Silence",
     report: "Report",
+    adjust: "Report Adjust",
     otherToolsSection: "Other Tools",
     mediaSplit: "MP4 Split",
     // About Dialog
@@ -292,6 +311,24 @@ export const translations = {
     defaultSuffix: "(Default)",
     viewPrompt: "View Prompt Example",
     defaultPromptTitle: "Default Prompt Content",
+    caseFormatLabel: "Use case-record format",
+    caseFormatOnHint: "Heading: 【個案來源：1段落一.mp3】　Title: 醫學會議精煉報告",
+    caseFormatOffHint: "Heading: 1段落一　Title: 逐字稿報告",
+    // Adjust Page
+    adjustTitle: "Report Adjustment",
+    adjustDescription:
+      "Pick any .md report and re-process it with Gemini using your own prompt; results go to 05_adjust with an _adj suffix.",
+    adjustCloudNotice:
+      "The report content is uploaded to Google Gemini for processing (the cloud copy is deleted automatically afterwards). Do not upload reports containing sensitive content.",
+    adjustSource: "Source Report (.md)",
+    adjustSourcePlaceholder: "Select the .md report to adjust...",
+    adjustPrompt: "Adjustment Prompt (required, .txt)",
+    adjustPromptPlaceholder: "Select a .txt prompt file (required)...",
+    runAdjust: "Adjust Report (auto-creates Word file)",
+    adjusting: "Adjusting...",
+    processingAdjust: "Adjusting the report, this may take a few minutes...",
+    errorAdjustSource: "Please select the report (.md) to adjust first",
+    errorAdjustPrompt: "Please select an adjustment prompt (.txt) first",
   },
 };
 

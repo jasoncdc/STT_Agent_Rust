@@ -23,3 +23,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri sidecar 執行檔（由 CI 於 build 時下載並驗證 SHA256，見 .github/workflows/build.yml）
+src-tauri/binaries/
+src-tauri/*-x86_64-pc-windows-msvc.exe

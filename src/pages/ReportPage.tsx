@@ -1,39 +1,38 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open, message } from "@tauri-apps/plugin-dialog";
 import { useI18n } from "../i18n";
+import { ModelPricingModal, ModelPricing } from "../components/ModelPricingModal";
 
 interface ReportPageProps {
     isActive?: boolean;
+    /** API Key 由 App.tsx 持有，與「報告調整」頁共用 */
+    apiKey: string;
+    setApiKey: (key: string) => void;
 }
 
-export function ReportPage({ isActive }: ReportPageProps) {
+export function ReportPage({ isActive, apiKey, setApiKey }: ReportPageProps) {
     const { t, language } = useI18n();
-    const [apiKey, setApiKey] = useState("");
     const [showApiKey, setShowApiKey] = useState(false);
     const [folderPath, setFolderPath] = useState("");
     const [output, setOutput] = useState("");
     const [loading, setLoading] = useState(false);
-    // const [converting, setConverting] = useState(false);
-    // const [reportPath, setReportPath] = useState("");
+    const [converting, setConverting] = useState(false);
+    const [reportPath, setReportPath] = useState("");
     const [modelName, setModelName] = useState("gemini-2.5-pro");
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const [modelsLoading, setModelsLoading] = useState(false);
     const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [customPromptPath, setCustomPromptPath] = useState("");
+    // 個案格式：段落標頭用【個案來源：檔名.mp3】。預設開啟（個案部門的既有用法）
+    const [caseFormat, setCaseFormat] = useState(() => {
+        return localStorage.getItem("report_case_format") !== "false";
+    });
     const [showPromptModal, setShowPromptModal] = useState(false);
     const [defaultPrompt, setDefaultPrompt] = useState("");
     const [modalTitle, setModalTitle] = useState("");
 
-    interface ModelPricing {
-        model_id: string;
-        input_free: string;
-        input_paid: string;
-        output_free: string;
-        output_paid: string;
-        sort_price: number;
-    }
     const [pricingMap, setPricingMap] = useState<Record<string, ModelPricing>>({});
     const [showPriceModal, setShowPriceModal] = useState(false);
 
@@ -171,6 +170,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 folderPath,
                 modelName,
                 customPromptPath: customPromptPath || null,
+                caseFormat,
             });
             setOutput((prev) => prev + "\n\n" + (result as string));
         } catch (err) {
@@ -186,8 +186,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
         }
     }
 
-    // 選擇 MD 檔案 - 暫時隱藏
-    /*
+    // 選擇 MD 檔案
     async function handleSelectMdFile() {
         try {
             const selected = await open({
@@ -203,10 +202,8 @@ export function ReportPage({ isActive }: ReportPageProps) {
             setOutput(`${t.selectFileError}: ${err}`);
         }
     }
-    */
 
-    // 轉換為 DOCX - 暫時隱藏
-    /*
+    // 轉換為 DOCX
     async function convertToDocx() {
         if (!reportPath) {
             setOutput(`${t.error}: ${t.errorSelectReport}`);
@@ -227,7 +224,6 @@ export function ReportPage({ isActive }: ReportPageProps) {
             setConverting(false);
         }
     }
-    */
 
     // Load default path from localStorage
     useEffect(() => {
@@ -368,131 +364,16 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 )}
             </div>
 
-            {/* 價格彈窗：顯示所有模型完整定價 */}
-            {showPriceModal && (() => {
-                const borderColor = "var(--border-color, #444)";
-                const textSecondary = "var(--text-secondary, #888)";
-                const modelsToShow = availableModels.length > 0 ? availableModels : Object.keys(pricingMap);
-                const thStyle: React.CSSProperties = {
-                    padding: "6px 10px", fontWeight: 600, fontSize: "0.78rem",
-                    borderBottom: `1px solid ${borderColor}`, whiteSpace: "pre-line",
-                    background: "#0f0f1a",
-                    color: "#e2e8f0",
-                    position: "sticky", top: 0, zIndex: 1,
-                };
-                const tdStyle: React.CSSProperties = {
-                    padding: "8px 10px", fontSize: "0.82rem", verticalAlign: "top",
-                    borderBottom: `1px solid ${borderColor}`, whiteSpace: "pre-line",
-                    background: "#2a2a3e",
-                };
-                return (
-                    <div
-                        style={{
-                            position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
-                            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
-                        }}
-                        onClick={() => setShowPriceModal(false)}
-                    >
-                        <div
-                            style={{
-                                background: "var(--bg-secondary, #1e1e2e)",
-                                border: `1px solid ${borderColor}`,
-                                borderRadius: "12px", padding: "24px",
-                                width: "min(860px, 95vw)", maxHeight: "80vh",
-                                display: "flex", flexDirection: "column",
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                                <h3 style={{ margin: 0, fontSize: "1rem" }}>
-                                    💰 {language === "zh" ? "Gemini 模型定價（標準方案）" : "Gemini Model Pricing (Standard)"}
-                                </h3>
-                                <span style={{ fontSize: "0.75rem", color: textSecondary }}>
-                                    {language === "zh" ? "每 100 萬 token（美元）· 每日更新" : "Per 1M tokens (USD) · Updated daily"}
-                                </span>
-                            </div>
-
-                            <div style={{ overflowY: "auto", flex: 1 }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                    <thead>
-                                        <tr>
-                                            <th style={{ ...thStyle, textAlign: "left", width: "22%" }}>
-                                                {language === "zh" ? "模型" : "Model"}
-                                            </th>
-                                            <th style={{ ...thStyle, textAlign: "center", width: "19%" }}>
-                                                {language === "zh" ? "輸入（免費）" : "Input (Free)"}
-                                            </th>
-                                            <th style={{ ...thStyle, textAlign: "center", width: "30%" }}>
-                                                {language === "zh" ? "輸入（付費層級）" : "Input (Paid)"}
-                                            </th>
-                                            <th style={{ ...thStyle, textAlign: "center", width: "14%" }}>
-                                                {language === "zh" ? "輸出（免費）" : "Output (Free)"}
-                                            </th>
-                                            <th style={{ ...thStyle, textAlign: "center", width: "15%" }}>
-                                                {language === "zh" ? "輸出（付費）" : "Output (Paid)"}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {modelsToShow.map((m) => {
-                                            const p = pricingMap[m];
-                                            const isSelected = m === modelName;
-                                            return (
-                                                <tr
-                                                    key={m}
-                                                    onClick={() => { setModelName(m); setShowPriceModal(false); }}
-                                                    title={language === "zh" ? "點擊選擇此模型" : "Click to select"}
-                                                    style={{ cursor: "pointer" }}
-                                                >
-                                                    {(() => {
-                                                        const rowBg = isSelected ? "#3b3b6b" : "#2a2a3e";
-                                                        const cellStyle = { ...tdStyle, background: rowBg };
-                                                        return p ? (
-                                                            <>
-                                                                <td style={{ ...cellStyle, fontWeight: isSelected ? 700 : 400 }}>
-                                                                    {isSelected && <span style={{ color: "#818cf8", marginRight: 4 }}>▶</span>}
-                                                                    {m}
-                                                                </td>
-                                                                <td style={{ ...cellStyle, textAlign: "center", color: textSecondary }}>{p.input_free}</td>
-                                                                <td style={{ ...cellStyle, textAlign: "center" }}>{p.input_paid}</td>
-                                                                <td style={{ ...cellStyle, textAlign: "center", color: textSecondary }}>{p.output_free}</td>
-                                                                <td style={{ ...cellStyle, textAlign: "center" }}>{p.output_paid}</td>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <td style={{ ...cellStyle, fontWeight: isSelected ? 700 : 400 }}>
-                                                                    {isSelected && <span style={{ color: "#818cf8", marginRight: 4 }}>▶</span>}
-                                                                    {m}
-                                                                </td>
-                                                                <td colSpan={4} style={{ ...cellStyle, color: textSecondary, textAlign: "center" }}>
-                                                                    {language === "zh" ? "無定價資料" : "No pricing data"}
-                                                                </td>
-                                                            </>
-                                                        );
-                                                    })()}
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
-                                <span style={{ fontSize: "0.72rem", color: textSecondary }}>
-                                    ai.google.dev/gemini-api/docs/pricing
-                                </span>
-                                <button
-                                    className="btn btn-secondary"
-                                    onClick={() => setShowPriceModal(false)}
-                                    style={{ padding: "4px 20px" }}
-                                >
-                                    {language === "zh" ? "關閉" : "Close"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
+            {showPriceModal && (
+                <ModelPricingModal
+                    models={availableModels}
+                    pricingMap={pricingMap}
+                    selectedModel={modelName}
+                    language={language}
+                    onSelect={setModelName}
+                    onClose={() => setShowPriceModal(false)}
+                />
+            )}
 
             {/* 自定義 Prompt 輸入 */}
             <div className="input-group" style={{ marginBottom: "20px" }}>
@@ -531,6 +412,27 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 </div>
             </div>
 
+            {/* 段落標頭格式 */}
+            <div className="input-group" style={{ marginBottom: "20px" }}>
+                <label
+                    style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={caseFormat}
+                        onChange={(e) => {
+                            setCaseFormat(e.target.checked);
+                            localStorage.setItem("report_case_format", String(e.target.checked));
+                        }}
+                        style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                    />
+                    <span>{t.caseFormatLabel}</span>
+                </label>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "6px", marginLeft: "24px" }}>
+                    {caseFormat ? t.caseFormatOnHint : t.caseFormatOffHint}
+                </div>
+            </div>
+
             {/* 生成按鈕 */}
             <div className="btn-group" style={{ marginBottom: "30px" }}>
                 <button
@@ -543,7 +445,7 @@ export function ReportPage({ isActive }: ReportPageProps) {
                 </button>
             </div>
 
-            {/* 暫時隱藏手動工具功能
+            {/* 手動工具：markdown 轉 Word */}
             <hr style={{ margin: "20px 0", borderColor: "#444" }} />
 
             <h3 style={{ marginBottom: "15px", fontSize: "1rem", color: "#888" }}>🛠️ {t.manualTools}</h3>
@@ -579,7 +481,6 @@ export function ReportPage({ isActive }: ReportPageProps) {
                     {converting ? t.convertingDocx : `📝 ${t.convertToDocx}`}
                 </button>
             </div>
-            */}
 
             {/* 輸出區域 */}
             {output && (

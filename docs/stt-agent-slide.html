@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STT Agent 導入成效｜單頁彙報</title>
+<style>
+  :root {
+    --ink: #1B2A3D;
+    --ink-soft: #3D4E63;
+    --paper: #F7F5F0;
+    --paper-raised: #FFFFFF;
+    --line: #DEDAD0;
+    --amber: #B8863F;
+    --amber-soft: #F1E4CC;
+    --moss: #3F5C50;
+    --moss-soft: #E3EBE6;
+    --muted: #7C8494;
+    --shadow: 0 1px 2px rgba(27,42,61,0.04), 0 8px 24px rgba(27,42,61,0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #ECE9E1; --ink-soft: #C3C7D1; --paper: #14181F; --paper-raised: #1B212B;
+    --line: #2B3340; --amber: #D9A85C; --amber-soft: #2E2818; --moss: #7FA492;
+    --moss-soft: #1C2721; --muted: #8992A3;
+    --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #ECE9E1; --ink-soft: #C3C7D1; --paper: #14181F; --paper-raised: #1B212B;
+      --line: #2B3340; --amber: #D9A85C; --amber-soft: #2E2818; --moss: #7FA492;
+      --moss-soft: #1C2721; --muted: #8992A3;
+      --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: #0000;
+    background-color: var(--line);
+    color: var(--ink);
+    font-family: "Noto Sans TC", "Microsoft JhengHei", -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--paper);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 44px 56px 36px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+    flex-shrink: 0;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+
+  .head h1 {
+    font-family: "Noto Serif TC", "PMingLiU", serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .head-meta {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Body: two columns */
+  .body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 32px;
+    margin-top: 26px;
+    min-height: 0;
+  }
+
+  /* Left: headline metric */
+  .metric-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .metric { text-align: center; }
+
+  .metric .value {
+    font-family: "Noto Serif TC", serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .metric.before .value { color: var(--muted); }
+  .metric.after .value { color: var(--amber); }
+
+  .metric .unit { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .metric .cap { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+  .metric-arrow {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--moss);
+  }
+  .metric-arrow svg { width: 30px; height: 18px; }
+  .metric-arrow span {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    background: var(--moss-soft); color: var(--moss); padding: 2px 8px; border-radius: 20px;
+  }
+
+  .metric-quote {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .metric-quote .who {
+    display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted);
+  }
+
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  .stat { background: var(--paper-raised); padding: 10px 6px; text-align: center; }
+  .stat .num {
+    font-family: "Noto Serif TC", serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 18px; font-weight: 700; color: var(--ink);
+  }
+  .stat .num small { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .stat .label { margin-top: 2px; font-size: 10.5px; color: var(--muted); }
+
+  /* Right: flow + highlights */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 0;
+  }
+
+  .section-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-soft); margin: 0 0 10px;
+  }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  .flow {
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+  }
+  .flow-step {
+    flex: 1; padding: 14px 14px; position: relative; border-right: 1px solid var(--line);
+  }
+  .flow-step:last-child { border-right: none; }
+  .flow-step .tag { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--amber); text-transform: uppercase; }
+  .flow-step h3 { font-size: 14px; margin: 5px 0 4px; font-weight: 700; }
+  .flow-step p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.45; }
+  .flow-step .dir {
+    position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; background: var(--paper-raised); border: 1px solid var(--line);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2;
+  }
+  .flow-step .dir svg { width: 8px; height: 8px; color: var(--muted); }
+
+  .highlights {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    min-height: 0;
+  }
+  .hl-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .hl-card .badge {
+    align-self: flex-start;
+    font-size: 10px; padding: 2px 8px; border-radius: 20px;
+    background: var(--moss-soft); color: var(--moss); font-weight: 700;
+  }
+  .hl-card h4 { font-size: 13.5px; margin: 2px 0 0; font-weight: 700; }
+  .hl-card p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  .footer {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <header class="head">
+    <div>
+      <p class="eyebrow">內部彙報 · 工具導入成效</p>
+      <h1>語音病審轉錄工作流優化｜STT Agent 導入成效</h1>
+    </div>
+    <div class="head-meta">
+      彙報日期　2026-07-22<br>
+      工具版本　v1.1.9
+    </div>
+  </header>
+
+  <div class="body">
+
+    <div class="metric-card">
+      <div class="metric-row">
+        <div class="metric before">
+          <div class="value">27</div>
+          <div class="unit">hr／案</div>
+          <div class="cap">導入前</div>
+        </div>
+        <div class="metric-arrow">
+          <svg viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h34M26 4l10 8-10 8"/></svg>
+          <span>−67%</span>
+        </div>
+        <div class="metric after">
+          <div class="value">9</div>
+          <div class="unit">hr／案</div>
+          <div class="cap">導入後</div>
+        </div>
+      </div>
+
+      <div class="metric-quote">
+        「原本處理病例審查會議音檔＋聽打要 27 小時，經過這套工具，現在只需 9 小時就能完成。」
+        <span class="who">— 客戶端 病審會議轉錄承辦人員回饋</span>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat"><div class="num">18<small>hr</small></div><div class="label">單案節省工時</div></div>
+        <div class="stat"><div class="num">3<small>×</small></div><div class="label">效率提升倍數</div></div>
+        <div class="stat"><div class="num">4<small>階段</small></div><div class="label">流程自動化</div></div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div>
+        <p class="section-label">工作流程 · 四階段自動化</p>
+        <div class="flow">
+          <div class="flow-step">
+            <p class="tag">01 轉檔</p>
+            <h3>全能轉檔</h3>
+            <p>統一轉為標準 MP3，自動建立專案資料夾</p>
+            <div class="dir"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 1l4 3-4 3"/></svg></div>
+          </div>
+          <div class="flow-step">
+            <p class="tag">02 切割</p>
+            <h3>精準切割</h3>
+            <p>依時間戳記分離多位病患案例</p>
+            <div class="dir"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 1l4 3-4 3"/></svg></div>
+          </div>
+          <div class="flow-step">
+            <p class="tag">03 消音</p>
+            <h3>去識別化</h3>
+            <p>批次轉錄＋視覺化消音隱私段落</p>
+            <div class="dir"><svg viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 1l4 3-4 3"/></svg></div>
+          </div>
+          <div class="flow-step">
+            <p class="tag">04 報告</p>
+            <h3>AI 智慧報告</h3>
+            <p>Gemini 生成逐字稿等級醫療紀錄</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+        <p class="section-label">效率提升關鍵</p>
+        <div class="highlights">
+          <div class="hl-card">
+            <span class="badge">取代人工聽打</span>
+            <h4>批次逐字稿轉錄</h4>
+            <p>整資料夾錄音一次送轉，取代最耗時的聽打環節</p>
+          </div>
+          <div class="hl-card">
+            <span class="badge">去識別化提速</span>
+            <h4>視覺化消音標記</h4>
+            <p>看文字勾選取代聽音檔，無損原始音質</p>
+          </div>
+          <div class="hl-card">
+            <span class="badge">報告自動化</span>
+            <h4>AI 醫療報告生成</h4>
+            <p>逐字稿等級紀錄，中英醫學術語自動對照</p>
+          </div>
+          <div class="hl-card">
+            <span class="badge">流程標準化</span>
+            <h4>全流程自動歸檔</h4>
+            <p>四階段成果依序存檔，銜接既有交付格式</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <span>STT Agent（醫療音訊助理）· Tauri + Rust + React 跨平台桌面應用</span>
+    <span>本頁彙整客戶端實務回饋，供內部彙報使用</span>
+  </footer>
+
+</div>
+
+</body>
+</html>

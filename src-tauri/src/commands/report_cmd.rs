@@ -94,6 +94,7 @@ pub async fn generate_report(
     folder_path: String,
     model_name: Option<String>,
     custom_prompt_path: Option<String>,
+    case_format: Option<bool>,
 ) -> Result<String, String> {
     if api_key.is_empty() {
         return Err("請輸入 Gemini API Key".to_string());
@@ -134,7 +135,7 @@ pub async fn generate_report(
     // 1. 生成報告 (Markdown)
     let agent = ReportAgent::new(api_key);
     let report_result = agent
-        .process_folder(&folder_path, &output_path, model_name, custom_prompt, &app)
+        .process_folder(&folder_path, &output_path, model_name, custom_prompt, case_format, &app)
         .await?;
 
     // 2. 自動轉換為 DOCX
@@ -154,7 +155,7 @@ pub async fn convert_md_to_docx(app: tauri::AppHandle, md_path: String) -> Resul
 }
 
 /// 內部函數：執行 Pandoc Sidecar 轉換
-async fn convert_md_to_docx_internal(md_path: &str, app: &tauri::AppHandle) -> Result<String, String> {
+pub(crate) async fn convert_md_to_docx_internal(md_path: &str, app: &tauri::AppHandle) -> Result<String, String> {
     use tauri_plugin_shell::ShellExt;
 
     let md_file = Path::new(md_path);
@@ -162,7 +163,8 @@ async fn convert_md_to_docx_internal(md_path: &str, app: &tauri::AppHandle) -> R
         return Err(format!("找不到檔案: {}", md_path));
     }
 
-    let docx_path = md_path.replace(".md", ".docx");
+    // 只替換最後一個副檔名；用 replace(".md", ".docx") 會誤傷路徑中間含 .md 的資料夾名稱
+    let docx_path = md_file.with_extension("docx").to_string_lossy().to_string();
 
     let output = app
         .shell()

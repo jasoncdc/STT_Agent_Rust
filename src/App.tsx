@@ -12,10 +12,11 @@ import { SilencePage } from "./pages/SilencePage";
 import { SilenceAutoPage } from "./pages/SilenceAutoPage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { ReportPage } from "./pages/ReportPage";
+import { AdjustPage } from "./pages/AdjustPage";
 import { MediaSplitPage } from "./pages/MediaSplitPage";
 import { useI18n } from "./i18n";
 
-type Tab = "welcome" | "convert" | "split" | "silence" | "silence-auto" | "report" | "media-split";
+type Tab = "welcome" | "convert" | "split" | "silence" | "silence-auto" | "report" | "adjust" | "media-split";
 type MenuOpen = "file" | "edit" | null;
 type Theme = "dark" | "light";
 
@@ -106,6 +107,23 @@ const ReportIcon = () => (
   </svg>
 );
 
+const AdjustIcon = () => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h7" />
+    <polyline points="14 2 14 8 20 8" />
+    <path d="M18.5 13.5l3 3L17 21l-3 .5.5-3z" />
+  </svg>
+);
+
 function App() {
   const { language, setLanguage, t } = useI18n();
 
@@ -149,6 +167,9 @@ function App() {
     localStorage.setItem("app-last-tab", activeTab);
   }, [activeTab]);
 
+  // Gemini API Key：由「報告」與「報告調整」兩頁共用，維持不寫入 localStorage
+  const [geminiApiKey, setGeminiApiKey] = useState("");
+
   const [openMenu, setOpenMenu] = useState<MenuOpen>(null);
   const [showAbout, setShowAbout] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState<{ version: string; body: string; update: any } | null>(null);
@@ -177,6 +198,7 @@ function App() {
       { id: "silence", labelKey: "silence", icon: <SilenceIcon /> },
       { id: "silence-auto", labelKey: "silenceAuto", icon: <SilenceIcon /> },
       { id: "report", labelKey: "report", icon: <ReportIcon /> },
+      { id: "adjust", labelKey: "adjust", icon: <AdjustIcon /> },
     ];
 
   // 「其他工具」分類：與主要工作流程無關的獨立小工具
@@ -339,7 +361,7 @@ function App() {
             <h2>{t.aboutTitle}</h2>
             <div className="about-info">
               <p>
-                <strong>{t.version}:</strong> 1.9.0
+                <strong>{t.version}:</strong> 2.0.0
               </p>
               <p>{t.description}</p>
             </div>
@@ -608,7 +630,18 @@ function App() {
               <SilenceAutoPage />
             </div>
             <div style={{ display: activeTab === "report" ? "block" : "none" }}>
-              <ReportPage isActive={activeTab === "report"} />
+              <ReportPage
+                isActive={activeTab === "report"}
+                apiKey={geminiApiKey}
+                setApiKey={setGeminiApiKey}
+              />
+            </div>
+            <div style={{ display: activeTab === "adjust" ? "block" : "none" }}>
+              <AdjustPage
+                isActive={activeTab === "adjust"}
+                apiKey={geminiApiKey}
+                setApiKey={setGeminiApiKey}
+              />
             </div>
             <div style={{ display: activeTab === "media-split" ? "block" : "none" }}>
               <MediaSplitPage />

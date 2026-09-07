@@ -36,17 +36,22 @@ struct GenerateResponse {
 
 #[derive(Debug, Deserialize)]
 struct Candidate {
-    content: Content,
+    content: Option<Content>,
+    #[serde(rename = "finishReason")]
+    finish_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct Content {
-    parts: Vec<Part>,
+    parts: Option<Vec<Part>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct Part {
     text: Option<String>,
+    // 部分模型（如 transcribe 系列）會回傳思考過程的 part，需排除
+    #[serde(default)]
+    thought: bool,
 }
 
 // Generate Content 請求結構
@@ -98,6 +103,42 @@ pub const DEFAULT_PROMPT: &str = r#"
 // - 將轉錄的英文術語翻譯中文後，中英文一起顯示(ex. Abdominal Aortic Aneurysm -> 腹主動脈瘤(Abdominal Aortic Aneurysm))。
 // - 保持專業術語的準確性。
 
+/// 依副檔名決定上傳用的 MIME type
+/// 音檔分支與改動前完全相同；額外支援 .md / .txt 供「報告調整」上傳文字檔
+pub(crate) fn mime_for_path(path: &Path) -> &'static str {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase());
+    match ext.as_deref() {
+        Some("mp3") => "audio/mpeg",
+        Some("wav") => "audio/wav",
+        Some("aac") => "audio/aac",
+        Some("flac") => "audio/flac",
+        Some("ogg") => "audio/ogg",
+        Some("m4a") => "audio/mp4",
+        Some("md") => "text/markdown",
+        Some("txt") => "text/plain",
+        _ => "audio/mpeg",
+    }
+}
+
+/// generate_content 的完整結果：除了文字，也帶回 finishReason 供呼叫端判斷是否被截斷
+pub(crate) struct GenerateOutcome {
+    pub text: String,
+    pub finish_reason: String,
+}
+
+/// 截斷過長的原始回應，避免錯誤訊息塞爆 UI（以字元為單位，不會切壞 UTF-8）
+pub(crate) fn truncate(s: &str, max_chars: usize) -> String {
+    if s.chars().count() <= max_chars {
+        s.to_string()
+    } else {
+        let head: String = s.chars().take(max_chars).collect();
+        format!("{}...(已截斷)", head)
+    }
+}
+
 pub struct ReportAgent {
     api_key: String,
     client: reqwest::Client,
@@ -111,6 +152,20 @@ impl ReportAgent {
         }
     }
 
+    /// 決定每個音檔段落的標頭文字
+    /// 個案格式 → 【個案來源：檔名.mp3】（保留副檔名）
+    /// 一般格式 → 直接用檔名（去掉副檔名）
+    fn section_heading(filename: &str, use_case_format: bool) -> String {
+        if use_case_format {
+            format!("【個案來源：{}】", filename)
+        } else {
+            Path::new(filename)
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| filename.to_string())
+        }
+    }
+
     /// 處理資料夾中的所有音檔，生成報告
     pub async fn process_folder(
         &self,
@@ -118,6 +173,9 @@ impl ReportAgent {
         output_path: &str,
         model_name: Option<String>,
         custom_prompt: Option<String>,
+        // 是否使用個案格式（【個案來源：檔名.mp3】+ 醫學會議標題）。
+        // None 時退回舊行為：沒有自訂 Prompt 就用個案格式。
+        case_format: Option<bool>,
         app: &tauri::AppHandle,
     ) -> Result<String, String> {
         // 0. 決定模型 (預設 gemini-3.1-pro-preview)
@@ -160,8 +218,18 @@ impl ReportAgent {
 
         // 3. 初始化報告
         let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        // 決定報告標題與各段落標頭的樣式。
+        // 由前端的開關明確指定；未指定時退回舊行為（沒有自訂 Prompt 即視為個案流程）。
+        let use_case_format = case_format.unwrap_or_else(|| custom_prompt.is_none());
+
+        let report_title = if use_case_format {
+            "# 醫學會議精煉報告"
+        } else {
+            "# 逐字稿報告"
+        };
+
         let mut report_content =
-            format!("# 醫學會議精煉報告\n\n生成時間: {}\n\n---\n\n", timestamp);
+            format!("{}\n\n生成時間: {}\n\n---\n\n", report_title, timestamp);
 
         // 決定使用的 Prompt
         let prompt = custom_prompt.unwrap_or_else(|| DEFAULT_PROMPT.to_string());
@@ -188,8 +256,9 @@ impl ReportAgent {
                         "✅ ({}/{}) 完成：{}", idx + 1, total, filename
                     ));
                     report_content.push_str(&format!(
-                        "## 【個案來源：{}】\n\n{}\n\n---\n\n",
-                        filename, text
+                        "## {}\n\n{}\n\n---\n\n",
+                        Self::section_heading(&filename, use_case_format),
+                        text
                     ));
                 }
                 Err(e) => {
@@ -198,8 +267,9 @@ impl ReportAgent {
                     ));
                     // 發生錯誤時，將錯誤訊息寫入報告並立即中斷
                     report_content.push_str(&format!(
-                        "## 【個案來源：{}】\n\n[API 呼叫中斷] {}\n\n---\n\n",
-                        filename, e
+                        "## {}\n\n[API 呼叫中斷] {}\n\n---\n\n",
+                        Self::section_heading(&filename, use_case_format),
+                        e
                     ));
                     // 將已經成功處理的部分寫入檔案，以免前面做白工
                     let _ = fs::write(output_path, &report_content);
@@ -238,8 +308,8 @@ impl ReportAgent {
             // 短檔案：直接處理
             println!("   -> {:.1} 分鐘 (短檔)，直接生成報告...", duration_min);
 
-            let file_uri = self.upload_file(file_path).await?;
-            let result = self.generate_content(&file_uri, model_name, prompt, app).await?;
+            let (file_uri, mime) = self.upload_file(file_path).await?;
+            let result = self.generate_content(&file_uri, &mime, model_name, prompt, app).await?;
             let _ = self.delete_file(&file_uri).await;
 
             Ok(result)
@@ -282,8 +352,8 @@ impl ReportAgent {
                 .await?;
 
                 // 上傳並處理分段
-                let file_uri = self.upload_file(segment_path.to_str().unwrap()).await?;
-                let part_text = self.generate_content(&file_uri, model_name, prompt, app).await?;
+                let (file_uri, mime) = self.upload_file(segment_path.to_str().unwrap()).await?;
+                let part_text = self.generate_content(&file_uri, &mime, model_name, prompt, app).await?;
                 let _ = self.delete_file(&file_uri).await;
 
                 full_transcript.push_str(&format!("\n{}\n", part_text));
@@ -389,7 +459,7 @@ impl ReportAgent {
     }
 
     /// 上傳檔案到 Gemini File API (使用 Resumable Upload 協議)
-    async fn upload_file(&self, file_path: &str) -> Result<String, String> {
+    pub(crate) async fn upload_file(&self, file_path: &str) -> Result<(String, String), String> {
         let path = Path::new(file_path);
         let file_name = path
             .file_name()
@@ -400,16 +470,8 @@ impl ReportAgent {
         let file_bytes = fs::read(file_path).map_err(|e| format!("讀取檔案失敗: {}", e))?;
         let file_size = file_bytes.len();
 
-        // 決定 MIME type
-        let mime_type = match path.extension().and_then(|e| e.to_str()) {
-            Some("mp3") => "audio/mpeg",
-            Some("wav") => "audio/wav",
-            Some("aac") => "audio/aac",
-            Some("flac") => "audio/flac",
-            Some("ogg") => "audio/ogg",
-            Some("m4a") => "audio/mp4",
-            _ => "audio/mpeg",
-        };
+        // 決定 MIME type（音檔與文字檔共用同一份對照表）
+        let mime_type = mime_for_path(path);
 
         // Step 1: 初始化 Resumable Upload
         const UPLOAD_URL: &str = "https://generativelanguage.googleapis.com/upload/v1beta/files";
@@ -476,7 +538,7 @@ impl ReportAgent {
         for _ in 0..120 {
             let state = self.get_file_state(file_name).await?;
             if state == "ACTIVE" {
-                return Ok(file_uri);
+                return Ok((file_uri, mime_type.to_string()));
             } else if state == "FAILED" {
                 return Err("檔案處理失敗".to_string());
             }
@@ -510,7 +572,7 @@ impl ReportAgent {
     }
 
     /// 刪除已上傳的檔案
-    async fn delete_file(&self, file_uri: &str) -> Result<(), String> {
+    pub(crate) async fn delete_file(&self, file_uri: &str) -> Result<(), String> {
         // 從 URI 中提取檔案名稱
         let file_name = file_uri.split('/').last().unwrap_or_default();
         let url = format!(
@@ -522,14 +584,32 @@ impl ReportAgent {
         Ok(())
     }
 
-    /// 使用 Gemini 生成內容（遇到 429 自動等待重試，最多 3 次）
+    /// 使用 Gemini 生成內容，只取回文字（報告流程用）
     async fn generate_content(
         &self,
         file_uri: &str,
+        mime_type: &str,
         model_name: &str,
         prompt: &str,
         app: &tauri::AppHandle,
     ) -> Result<String, String> {
+        let outcome = self
+            .generate_content_detailed(file_uri, mime_type, model_name, prompt, "report-progress", app)
+            .await?;
+        Ok(outcome.text)
+    }
+
+    /// 使用 Gemini 生成內容（遇到 429 自動等待重試，最多 3 次）
+    /// 回傳 GenerateOutcome，呼叫端可依 finish_reason 判斷輸出是否被截斷
+    pub(crate) async fn generate_content_detailed(
+        &self,
+        file_uri: &str,
+        mime_type: &str,
+        model_name: &str,
+        prompt: &str,
+        event_name: &str,
+        app: &tauri::AppHandle,
+    ) -> Result<GenerateOutcome, String> {
         use tauri::Emitter;
 
         let url = format!(
@@ -542,7 +622,7 @@ impl ReportAgent {
                 parts: vec![
                     RequestPart::FileData {
                         file_data: FileData {
-                            mime_type: "audio/mpeg".to_string(),
+                            mime_type: mime_type.to_string(),
                             file_uri: file_uri.to_string(),
                         },
                     },
@@ -574,7 +654,7 @@ impl ReportAgent {
                 if attempt + 1 < MAX_RETRIES {
                     // 通知前端正在等待重試
                     for remaining in (1..=RETRY_WAIT_SECS).rev() {
-                        let _ = app.emit("report-progress", format!(
+                        let _ = app.emit(event_name, format!(
                             "⏳ 已達免費額度速率限制（429），等待 {} 秒後自動重試（第 {}/{} 次）...",
                             remaining, attempt + 1, MAX_RETRIES - 1
                         ));
@@ -606,19 +686,47 @@ impl ReportAgent {
                 return Err(friendly);
             }
 
-            let result: GenerateResponse = response
-                .json()
+            // 先取回原始文字，解析失敗時才有東西可以回報
+            let body = response
+                .text()
                 .await
-                .map_err(|e| format!("解析回應失敗: {}", e))?;
+                .map_err(|e| format!("讀取回應失敗: {}", e))?;
 
-            let text = result
+            let result: GenerateResponse = serde_json::from_str(&body)
+                .map_err(|e| format!("解析回應失敗: {}\n原始回應：{}", e, truncate(&body, 2000)))?;
+
+            let candidate = result
                 .candidates
                 .and_then(|c| c.into_iter().next())
-                .and_then(|c| c.content.parts.into_iter().next())
-                .and_then(|p| p.text)
-                .unwrap_or_else(|| "[無內容]".to_string());
+                .ok_or_else(|| format!(
+                    "模型「{}」沒有回傳任何內容（candidates 為空）。\n原始回應：{}",
+                    model_name, truncate(&body, 2000)
+                ))?;
 
-            return Ok(text);
+            let finish_reason = candidate.finish_reason.clone().unwrap_or_else(|| "未提供".to_string());
+
+            // 串接所有 parts 的文字（排除思考過程），而非只取第一個
+            let text = candidate
+                .content
+                .and_then(|c| c.parts)
+                .map(|parts| {
+                    parts
+                        .into_iter()
+                        .filter(|p| !p.thought)
+                        .filter_map(|p| p.text)
+                        .collect::<Vec<_>>()
+                        .join("")
+                })
+                .unwrap_or_default();
+
+            if text.trim().is_empty() {
+                return Err(format!(
+                    "模型「{}」回傳空白內容。\n結束原因 (finishReason)：{}\n原始回應：{}",
+                    model_name, finish_reason, truncate(&body, 2000)
+                ));
+            }
+
+            return Ok(GenerateOutcome { text, finish_reason });
         }
 
         Err("已達最大重試次數，請稍後再試。".to_string())
@@ -629,5 +737,25 @@ impl ReportAgent {
     pub async fn execute(&self) -> Result<String, String> {
         println!("(Report) 正在呼叫 Gemini 生成報告 (Service Layer)...");
         Ok("請使用 process_folder 方法".to_string())
+    }
+}
+
+#[cfg(test)]
+mod report_tests {
+    use super::*;
+
+    #[test]
+    fn section_heading_formats() {
+        // 個案格式：保留副檔名，加上【個案來源：】
+        assert_eq!(
+            ReportAgent::section_heading("1段落一.mp3", true),
+            "【個案來源：1段落一.mp3】"
+        );
+        // 一般格式：去掉副檔名，只留檔名
+        assert_eq!(ReportAgent::section_heading("1段落一.mp3", false), "1段落一");
+        assert_eq!(
+            ReportAgent::section_heading("abstract_ch.wav", false),
+            "abstract_ch"
+        );
     }
 }

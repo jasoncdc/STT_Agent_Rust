@@ -1,3 +1,4 @@
+pub mod adjust_cmd;
 pub mod app_cmd;
 pub mod audio_cmd;
 pub mod file_cmd;

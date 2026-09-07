@@ -1,3 +1,4 @@
+pub mod adjust;
 pub mod converter;
 pub mod report;
 pub mod silence;
